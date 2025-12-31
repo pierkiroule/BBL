@@ -38,6 +38,15 @@ export default function ControlPanel({
   isSessionMode,
   onToggleDemoAudio,
   isDemoAudioEnabled,
+  strokeSize,
+  onStrokeSizeChange,
+  strokeOpacity,
+  onStrokeOpacityChange,
+  emoji,
+  onEmojiChange,
+  onStampImage,
+  stampOutline,
+  onStampOutlineChange,
 }) {
   const tools = useMemo(
     () => [
@@ -61,12 +70,84 @@ export default function ControlPanel({
         ),
       },
       {
+        id: 'watercolor',
+        label: 'Aquarelle',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M12 3c4 0 8 3 8 7s-3.5 7-8 7-8-3-8-7 4-7 8-7Z" />
+            <path d="M8 10c0 1.5 2 3 4 3" />
+          </svg>
+        ),
+      },
+      {
+        id: 'ink',
+        label: 'Encre',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M12 3c2 2 5 4 5 7.5 0 2.5-1.5 5.5-5 7.5-3.5-2-5-5-5-7.5C7 7 10 5 12 3Z" />
+            <path d="M9 11c1 .5 2 .5 3 0" />
+          </svg>
+        ),
+      },
+      {
+        id: 'particle-fill',
+        label: 'Nuage',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <circle cx="8" cy="8" r="2" />
+            <circle cx="16" cy="10" r="2" />
+            <circle cx="12" cy="15" r="2" />
+            <path d="M6 18c6 3 12 0 12-4.5S12 7 8 9" />
+          </svg>
+        ),
+      },
+      {
+        id: 'emoji-stamp',
+        label: 'Emoji',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M8 10h.01M16 10h.01" />
+            <path d="M8 15s1.5 2 4 2 4-2 4-2" />
+          </svg>
+        ),
+      },
+      {
+        id: 'text',
+        label: 'Texte',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M5 6h14M12 6v12m-6 0h12" />
+          </svg>
+        ),
+      },
+      {
+        id: 'image-stamp',
+        label: 'Pastille',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8" />
+            <path d="m8 12 2 2 3-4 3 4" />
+          </svg>
+        ),
+      },
+      {
         id: 'eraser',
         label: 'Gomme',
         icon: (
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.9-9.9c1-1 2.5-1 3.4 0l4.4 4.4c1 1 1 2.5 0 3.4L10.5 21z" />
             <path d="m22 21H7" />
+          </svg>
+        ),
+      },
+      {
+        id: 'soft-eraser',
+        label: 'Gomme douce',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M4 15c2 2 6 4 8 4s4-1 6-3" />
+            <path d="M6 10a5 5 0 0 1 5-4 5 5 0 0 1 5 4" />
           </svg>
         ),
       },
@@ -268,6 +349,75 @@ export default function ControlPanel({
           </div>
         </div>
       )}
+
+      <div className="panel-section">
+        <div className="section-head">
+          <span className="badge">Outil</span>
+          <p className="section-title">Réglages rapides</p>
+        </div>
+        <div className="control-card">
+          <div className="slider-row">
+            <span className="pill">Taille</span>
+            <span className="pill strong">{Math.round(strokeSize)}px</span>
+          </div>
+          <input
+            type="range"
+            min="3"
+            max="64"
+            step="1"
+            value={strokeSize}
+            onChange={(e) => onStrokeSizeChange(Number(e.target.value))}
+            aria-label="Taille du tracé"
+          />
+        </div>
+        <div className="control-card">
+          <div className="slider-row">
+            <span className="pill">Opacité</span>
+            <span className="pill subtle">{Math.round(strokeOpacity * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.05"
+            max="1"
+            step="0.05"
+            value={strokeOpacity}
+            onChange={(e) => onStrokeOpacityChange(Number(e.target.value))}
+            aria-label="Opacité du tracé"
+          />
+        </div>
+        {activeTool === 'emoji-stamp' && (
+          <div className="control-card">
+            <div className="slider-row">
+              <span className="pill">Emoji</span>
+            </div>
+            <div className="switch-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+              {['✨', '🌿', '🔥', '🌊', '💫', '🎈', '🫧', '⭐️'].map((item) => (
+                <button key={item} className={`ghost ${emoji === item ? 'active' : ''}`} onClick={() => onEmojiChange(item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {activeTool === 'image-stamp' && (
+          <div className="control-card">
+            <div className="slider-row">
+              <span className="pill">Pastille</span>
+              <button className={`ghost ${stampOutline ? 'active' : ''}`} onClick={() => onStampOutlineChange(!stampOutline)} aria-pressed={stampOutline}>
+                Contour
+              </button>
+            </div>
+            <label className="small-button" style={{ cursor: 'pointer', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" />
+                <path d="m7 15 3-3 2 2 3-4 2 3" />
+              </svg>
+              Importer
+              <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onStampImage(e.target.files[0])} className="hidden" />
+            </label>
+          </div>
+        )}
+      </div>
 
       <div className="tool-row">
         <div className="tool-group">

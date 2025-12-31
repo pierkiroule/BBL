@@ -6,6 +6,29 @@ import { saveSessionData } from '../store/useSessionStore.js';
 import { useBubbleLoops } from '../hooks/useBubbleLoops.js';
 import OrbitingLoopIndicator from '../components/OrbitingLoopIndicator.jsx';
 
+function defaultSizeForTool(tool) {
+  switch (tool) {
+    case 'brush':
+    case 'watercolor':
+      return 14;
+    case 'ink':
+      return 9;
+    case 'particle-fill':
+      return 12;
+    case 'emoji-stamp':
+    case 'text':
+      return 16;
+    case 'image-stamp':
+      return 22;
+    case 'eraser':
+      return 32;
+    case 'soft-eraser':
+      return 28;
+    default:
+      return 4;
+  }
+}
+
 export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange, onOpenGallery }) {
   const {
     drawingRef,
@@ -14,6 +37,11 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     stop,
     setTool,
     setColor: setEngineColor,
+    setStrokeSize: setEngineStrokeSize,
+    setStrokeOpacity: setEngineStrokeOpacity,
+    setEmoji: setEngineEmoji,
+    setStampOutline: setEngineStampOutline,
+    setStampImage: setEngineStampImage,
     setDuration: setEngineDuration,
     setSpeed: setEngineSpeed,
     setPause: setEnginePause,
@@ -48,14 +76,38 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [intensity, setIntensity] = useState(0.5);
   const [useDemoAudio, setUseDemoAudio] = useState(false);
   const [isImmersive, setIsImmersive] = useState(false);
+  const [strokeSize, setStrokeSize] = useState(() => defaultSizeForTool('pencil'));
+  const [strokeOpacity, setStrokeOpacity] = useState(1);
+  const [emoji, setEmoji] = useState('✨');
+  const [stampOutline, setStampOutline] = useState(true);
 
   useEffect(() => {
     setTool(activeTool);
   }, [activeTool, setTool]);
 
   useEffect(() => {
+    setStrokeSize(defaultSizeForTool(activeTool));
+  }, [activeTool]);
+
+  useEffect(() => {
     setEngineColor(color);
   }, [color, setEngineColor]);
+
+  useEffect(() => {
+    setEngineStrokeSize(strokeSize);
+  }, [setEngineStrokeSize, strokeSize]);
+
+  useEffect(() => {
+    setEngineStrokeOpacity(strokeOpacity);
+  }, [setEngineStrokeOpacity, strokeOpacity]);
+
+  useEffect(() => {
+    setEngineEmoji(emoji);
+  }, [emoji, setEngineEmoji]);
+
+  useEffect(() => {
+    setEngineStampOutline(stampOutline);
+  }, [setEngineStampOutline, stampOutline]);
 
   useEffect(() => {
     setEngineDuration(duration);
@@ -256,6 +308,15 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
           isSessionMode={sessionMode}
           onToggleDemoAudio={handleToggleDemoAudio}
           isDemoAudioEnabled={useDemoAudio}
+          strokeSize={strokeSize}
+          onStrokeSizeChange={setStrokeSize}
+          strokeOpacity={strokeOpacity}
+          onStrokeOpacityChange={setStrokeOpacity}
+          emoji={emoji}
+          onEmojiChange={setEmoji}
+          onStampImage={setEngineStampImage}
+          stampOutline={stampOutline}
+          onStampOutlineChange={setStampOutline}
         />
       )}
 
