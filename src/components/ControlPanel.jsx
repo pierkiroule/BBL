@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 function ToolButton({ id, label, icon, active, onClick }) {
   return (
@@ -156,7 +156,6 @@ export default function ControlPanel({
   );
 
   const [timePanelOpen, setTimePanelOpen] = useState(true);
-  const fadeTimerRef = useRef(null);
 
   const speedMood = useMemo(() => {
     if (speed < 0.55) return 'Respiré';
@@ -177,34 +176,24 @@ export default function ControlPanel({
     return 'Vibration';
   }, [intensity]);
 
-  const gentlyHideTimePanel = useCallback(() => {
-    setTimePanelOpen(true);
-    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
-    fadeTimerRef.current = setTimeout(() => setTimePanelOpen(false), 1400);
-  }, []);
-
-  useEffect(() => () => {
-    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
-  }, []);
-
   const handleDurationChange = (value) => {
     onDurationChange(value);
-    gentlyHideTimePanel();
+    setTimePanelOpen(true);
   };
 
   const handleSpeedChange = (value) => {
     onSpeedChange(value);
-    gentlyHideTimePanel();
+    setTimePanelOpen(true);
   };
 
   const handlePauseToggle = () => {
     onPauseToggle();
-    gentlyHideTimePanel();
+    setTimePanelOpen(true);
   };
 
   const handlePingPongToggle = () => {
     onPingPongToggle();
-    gentlyHideTimePanel();
+    setTimePanelOpen(true);
   };
 
   return (
@@ -214,12 +203,22 @@ export default function ControlPanel({
           <div>
             <span className="badge">Temps</span>
             <p className="section-title">Régler la boucle</p>
+            <span className={`pill subtle state-indicator ${timePanelOpen ? 'open' : 'closed'}`} aria-live="polite">
+              {timePanelOpen ? 'Ouvert' : 'Replié'}
+            </span>
           </div>
-          <button className="ghost pill" onClick={() => setTimePanelOpen((v) => !v)} aria-pressed={timePanelOpen}>
+          <button
+            type="button"
+            className="ghost pill"
+            onClick={() => setTimePanelOpen((v) => !v)}
+            aria-pressed={timePanelOpen}
+            aria-expanded={timePanelOpen}
+            aria-controls="time-panel-body"
+          >
             {timePanelOpen ? 'Fermer' : 'Ouvrir'}
           </button>
         </div>
-        <div className={`time-body ${timePanelOpen ? 'open' : ''}`}>
+        <div className={`time-body ${timePanelOpen ? 'open' : ''}`} id="time-panel-body">
           <div className="control-card">
             <div className="slider-row">
               <span className="pill">Durée</span>
