@@ -138,23 +138,28 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   };
 
   const handleExport = async () => {
-    const blob = await exportVideo();
-    if (blob) {
-      const defaultTitle = sessionName.replace(/projet\s*/i, '').trim() || 'BubbleLoop';
-      const title = window.prompt('Titre de la BubbleLoop :', defaultTitle) || defaultTitle;
-      const rawTags = window.prompt('Tags (séparées par virgule ou espace) :', '') || '';
-      const tags = rawTags
-        .split(/[,\\s]+/)
-        .map((tag) => tag.trim().toLowerCase())
-        .filter(Boolean);
-      await addBubbleLoop({
-        title: title.trim() || 'BubbleLoop',
-        date: Date.now(),
-        tags,
-        duration: Math.round(duration / 1000),
-        videoBlob: blob,
-      });
-      window.alert('BubbleLoop ajoutée à la galerie locale constellation.');
+    try {
+      const blob = await exportVideo();
+      if (blob) {
+        const defaultTitle = sessionName.replace(/projet\s*/i, '').trim() || 'BubbleLoop';
+        const title = window.prompt('Titre de la BubbleLoop :', defaultTitle) || defaultTitle;
+        const rawTags = window.prompt('Tags (séparées par virgule ou espace) :', '') || '';
+        const tags = rawTags
+          .split(/[,\\s]+/)
+          .map((tag) => tag.trim().toLowerCase())
+          .filter(Boolean);
+        await addBubbleLoop({
+          title: title.trim() || 'BubbleLoop',
+          date: Date.now(),
+          tags,
+          duration: Math.round(duration / 1000),
+          videoBlob: blob,
+        });
+        window.alert('BubbleLoop ajoutée à la galerie locale constellation.');
+      }
+    } catch (e) {
+      console.error('Impossible de sauvegarder la BubbleLoop', e);
+      window.alert("La sauvegarde locale a échoué. Vérifiez que votre navigateur autorise l'IndexedDB.");
     }
   };
 

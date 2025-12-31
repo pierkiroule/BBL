@@ -26,6 +26,10 @@ export default function BubbleLoopModal({ loop, onClose }) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (videoUrl) {
+      video.load();
+      video.currentTime = 0;
+    }
     video.loop = looping;
     video.playbackRate = speed;
     if (isPlaying) {
@@ -41,6 +45,9 @@ export default function BubbleLoopModal({ loop, onClose }) {
     setSpeed(1);
     setShareOpen(false);
     setCopied('');
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
   }, [loop?.id]);
 
   const shareText = useMemo(
