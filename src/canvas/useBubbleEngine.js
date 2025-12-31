@@ -129,19 +129,23 @@ export function useBubbleEngine() {
     });
   }, []);
 
+  const appendStroke = useCallback((stroke) => {
+    if (stroke?.points?.length > 1) {
+      strokesRef.current = [...strokesRef.current, stroke];
+    }
+  }, []);
+
   const stopDrawing = useCallback(() => {
     if (isDrawingRef.current) {
       isDrawingRef.current = false;
-      if (currentStrokeRef.current && currentStrokeRef.current.points.length > 1) {
-        strokesRef.current = [...strokesRef.current, currentStrokeRef.current];
-      }
+      appendStroke(currentStrokeRef.current);
       currentStrokeRef.current = null;
       if (drawCtxRef.current) {
         const size = displaySizeRef.current || drawCtxRef.current.canvas.width;
         drawCtxRef.current.clearRect(0, 0, size, size);
       }
     }
-  }, []);
+  }, [appendStroke]);
 
   const handlePointerDown = useCallback(
     (event) => {
@@ -172,12 +176,30 @@ export function useBubbleEngine() {
       const pos = getPosition(drawingRef.current, event);
       if (pos) {
         const currentTime = (Date.now() - startTimeRef.current) % loopDurationRef.current;
-        currentStrokeRef.current?.points.push({ ...pos, t: currentTime });
+        const stroke = currentStrokeRef.current;
+        const lastPoint = stroke?.points?.[stroke.points.length - 1];
+
+        if (stroke && lastPoint && currentTime < lastPoint.t) {
+          const completedStroke = {
+            ...stroke,
+            points: [...stroke.points, { ...lastPoint, t: loopDurationRef.current }],
+          };
+          appendStroke(completedStroke);
+          currentStrokeRef.current = {
+            ...stroke,
+            points: [
+              { ...lastPoint, t: 0 },
+              { ...pos, t: currentTime },
+            ],
+          };
+        } else {
+          currentStrokeRef.current?.points.push({ ...pos, t: currentTime });
+        }
       } else {
         stopDrawing();
       }
     },
-    [stopDrawing]
+    [appendStroke, stopDrawing]
   );
 
   const handlePointerUp = useCallback(() => {
