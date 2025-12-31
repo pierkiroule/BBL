@@ -1,4 +1,5 @@
 import React from 'react';
+import BubbleLoopLogo from './BubbleLoopLogo.jsx';
 
 export default function Header({
   sessionName,
@@ -9,13 +10,16 @@ export default function Header({
 }) {
   return (
     <header className="header-bar glass-panel">
-      <div className="flex flex-col">
-        <h1 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>
-          BBL <span style={{ color: 'var(--primary)' }}>Atelier</span>
-        </h1>
-        <span className="badge" style={{ marginTop: '0.15rem', maxWidth: '140px' }} title={sessionName}>
-          {sessionName}
-        </span>
+      <div className="flex" style={{ alignItems: 'center', gap: '0.75rem' }}>
+        <BubbleLoopLogo size={54} showLabel={false} />
+        <div className="flex flex-col">
+          <h1 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>
+            BBL <span style={{ color: 'var(--primary)' }}>Atelier</span>
+          </h1>
+          <span className="badge" style={{ marginTop: '0.15rem', maxWidth: '140px' }} title={sessionName}>
+            {sessionName}
+          </span>
+        </div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button onClick={onOpenLibrary} className="small-button" aria-label="Ouvrir les archives">
