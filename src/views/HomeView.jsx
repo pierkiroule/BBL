@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import BubbleLoopLogo from '../components/BubbleLoopLogo.jsx';
 
 const PUNCHLINES = [
   'Une adaptation transnumériste du squiggle de Winnicott.',
@@ -37,10 +38,7 @@ export default function HomeView({ onStart, onOpenLibrary }) {
       <div className="home-stack">
         <div className="centered" style={{ flexDirection: 'column', gap: '1.5rem', textAlign: 'center' }}>
           <div className="hero-badge">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a10 10 0 0 1 10 10" />
-            </svg>
+            <BubbleLoopLogo size={120} />
             <div className="version-pill">v0.1.2</div>
           </div>
           <div>
