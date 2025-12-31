@@ -4,6 +4,9 @@ import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
 import { useBubbleLoops } from '../hooks/useBubbleLoops.js';
 import OrbitingLoopIndicator from '../components/OrbitingLoopIndicator.jsx';
+import SaveSessionModal from '../components/SaveSessionModal.jsx';
+import ExportBubbleLoopModal from '../components/ExportBubbleLoopModal.jsx';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
 
 function defaultSizeForTool(tool) {
   switch (tool) {
@@ -79,6 +82,10 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [strokeOpacity, setStrokeOpacity] = useState(1);
   const [emoji, setEmoji] = useState('✨');
   const [stampOutline, setStampOutline] = useState(true);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setTool(activeTool);
@@ -167,40 +174,41 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     if (next) setSymmetry(1);
   }, [sessionMode, toggleEngineSessionMode, setSymmetry]);
 
-  const handleSave = useCallback(() => {
-    const payload = getSessionData();
-    const defaultName = sessionName.replace(/projet\s*/i, '').trim() || 'Sans Titre';
-    const name = window.prompt('Nom de la session :', defaultName) || defaultName;
-    const saved = saveSessionData({
-      id: sessionId,
-      name: name.toUpperCase(),
-      strokes: payload.strokes,
-      duration: payload.duration,
-      speed: payload.speed,
-      pingPong: payload.pingPong,
-      presence: payload.presence,
-      ghost: payload.ghost,
-    });
-    setSessionId(saved.id);
-    setSessionName(`Projet ${saved.name}`);
-    if (onSessionsChange) onSessionsChange();
-  }, [getSessionData, onSessionsChange, sessionId, sessionName]);
+  const handleSave = useCallback(
+    (name) => {
+      const payload = getSessionData();
+      const saved = saveSessionData({
+        id: sessionId,
+        name: name.toUpperCase(),
+        strokes: payload.strokes,
+        duration: payload.duration,
+        speed: payload.speed,
+        pingPong: payload.pingPong,
+        presence: payload.presence,
+        ghost: payload.ghost,
+      });
+      setSessionId(saved.id);
+      setSessionName(`Projet ${saved.name}`);
+      if (onSessionsChange) onSessionsChange();
+      setShowSaveModal(false);
+    },
+    [getSessionData, onSessionsChange, sessionId]
+  );
 
   const handleClear = () => {
-    if (window.confirm('Effacer tout ?')) clear();
+    setConfirmClearOpen(true);
   };
 
-  const handleExport = async () => {
+  const confirmClear = () => {
+    clear();
+    setConfirmClearOpen(false);
+  };
+
+  const handleExport = async ({ title, tags }) => {
     try {
+      setIsExporting(true);
       const blob = await exportVideo();
       if (blob) {
-        const defaultTitle = sessionName.replace(/projet\s*/i, '').trim() || 'BubbleLoop';
-        const title = window.prompt('Titre de la BubbleLoop :', defaultTitle) || defaultTitle;
-        const rawTags = window.prompt('Tags (séparées par virgule ou espace) :', '') || '';
-        const tags = rawTags
-          .split(/[,\\s]+/)
-          .map((tag) => tag.trim().toLowerCase())
-          .filter(Boolean);
         await addBubbleLoop({
           title: title.trim() || 'BubbleLoop',
           date: Date.now(),
@@ -213,6 +221,9 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     } catch (e) {
       console.error('Impossible de sauvegarder la BubbleLoop', e);
       window.alert("La sauvegarde locale a échoué. Vérifiez que votre navigateur autorise l'IndexedDB.");
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
     }
   };
 
@@ -235,6 +246,24 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   };
 
   const sessionMeta = useMemo(() => sessionName, [sessionName]);
+  const sessionSettings = useMemo(
+    () => ({
+      duration,
+      speed,
+      pingPong,
+      presence,
+    }),
+    [duration, speed, pingPong, presence]
+  );
+
+  const defaultSessionLabel = useMemo(
+    () => sessionName.replace(/projet\s*/i, '').trim() || 'Sans titre',
+    [sessionName]
+  );
+  const defaultExportTitle = useMemo(
+    () => sessionName.replace(/projet\s*/i, '').trim() || 'BubbleLoop',
+    [sessionName]
+  );
 
   const enterImmersiveCanvas = () => setIsImmersive(true);
   const exitImmersiveCanvas = () => setIsImmersive(false);
@@ -243,89 +272,116 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     if (!onHeaderUpdate) return undefined;
     onHeaderUpdate({
       sessionName: sessionMeta,
-      onSaveSession: handleSave,
+      onSaveSession: () => setShowSaveModal(true),
       onToggleSessionMode: handleToggleSessionMode,
       isSessionMode: sessionMode,
       onOpenGallery,
       onOpenLibrary,
     });
     return () => onHeaderUpdate(null);
-  }, [onHeaderUpdate, sessionMeta, handleSave, handleToggleSessionMode, sessionMode, onOpenGallery, onOpenLibrary]);
+  }, [onHeaderUpdate, sessionMeta, handleToggleSessionMode, sessionMode, onOpenGallery, onOpenLibrary]);
 
   return (
-    <section className={`view-content atelier-view ${isImmersive ? 'immersive' : ''}`} style={{ flex: 1 }}>
-      <div className="canvas-stage">
-        <div className="canvas-toolbar glass-panel">
-          <div className="canvas-hints">
-            <span className="badge">Geste libre</span>
-            <p className="muted">Pincer pour zoomer, glisser pour dessiner.</p>
+    <>
+      <section className={`view-content atelier-view ${isImmersive ? 'immersive' : ''}`} style={{ flex: 1 }}>
+        <div className="canvas-stage">
+          <div className="canvas-toolbar glass-panel">
+            <div className="canvas-hints">
+              <span className="badge">Geste libre</span>
+              <p className="muted">Pincer pour zoomer, glisser pour dessiner.</p>
+            </div>
+            <div className="canvas-toolbar-actions">
+              <button className="ghost" onClick={enterImmersiveCanvas} aria-pressed={isImmersive}>
+                Canvas seul
+              </button>
+            </div>
           </div>
-          <div className="canvas-toolbar-actions">
-            <button className="ghost" onClick={enterImmersiveCanvas} aria-pressed={isImmersive}>
-              Canvas seul
-            </button>
-          </div>
+
+          <main className="canvas-viewport">
+            <div className="canvas-wrapper" id="canvas-outer">
+              <div className="canvas-clip">
+                <canvas ref={loopRef} />
+                <canvas ref={drawingRef} />
+              </div>
+              <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
+            </div>
+          </main>
         </div>
 
-        <main className="canvas-viewport">
-          <div className="canvas-wrapper" id="canvas-outer">
-            <div className="canvas-clip">
-              <canvas ref={loopRef} />
-              <canvas ref={drawingRef} />
-            </div>
-            <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
-          </div>
-        </main>
-      </div>
+        {!isImmersive && (
+          <ControlPanel
+            color={color}
+            onColorChange={setColor}
+            duration={duration}
+            onDurationChange={setDuration}
+            speed={speed}
+            onSpeedChange={setSpeed}
+            isPaused={isPaused}
+            onPauseToggle={() => setIsPaused((v) => !v)}
+            pingPong={pingPong}
+            onPingPongToggle={() => setPingPong((v) => !v)}
+            presence={presence}
+            onPresenceChange={setPresence}
+            onGhostToggle={() => setGhostMode((v) => !v)}
+            ghostMode={ghostMode}
+            onSymmetryToggle={() => setSymmetry((v) => (v === 1 ? 6 : 1))}
+            symmetry={symmetry}
+            onClear={handleClear}
+            onExport={() => setShowExportModal(true)}
+            onToolChange={setActiveTool}
+            activeTool={activeTool}
+            onAudioFile={handleLoadAudio}
+            onToggleAudio={handleToggleAudio}
+            isPlaying={isPlaying}
+            intensity={intensity}
+            onIntensityChange={setIntensity}
+            onToggleSessionMode={handleToggleSessionMode}
+            isSessionMode={sessionMode}
+            onToggleDemoAudio={handleToggleDemoAudio}
+            isDemoAudioEnabled={useDemoAudio}
+            strokeSize={strokeSize}
+            onStrokeSizeChange={setStrokeSize}
+            strokeOpacity={strokeOpacity}
+            onStrokeOpacityChange={setStrokeOpacity}
+            emoji={emoji}
+            onEmojiChange={setEmoji}
+            onStampImage={setEngineStampImage}
+            stampOutline={stampOutline}
+            onStampOutlineChange={setStampOutline}
+          />
+        )}
 
-      {!isImmersive && (
-        <ControlPanel
-          color={color}
-          onColorChange={setColor}
-          duration={duration}
-          onDurationChange={setDuration}
-          speed={speed}
-          onSpeedChange={setSpeed}
-          isPaused={isPaused}
-          onPauseToggle={() => setIsPaused((v) => !v)}
-          pingPong={pingPong}
-          onPingPongToggle={() => setPingPong((v) => !v)}
-          presence={presence}
-          onPresenceChange={setPresence}
-          onGhostToggle={() => setGhostMode((v) => !v)}
-          ghostMode={ghostMode}
-          onSymmetryToggle={() => setSymmetry((v) => (v === 1 ? 6 : 1))}
-          symmetry={symmetry}
-          onClear={handleClear}
-          onExport={handleExport}
-          onToolChange={setActiveTool}
-          activeTool={activeTool}
-          onAudioFile={handleLoadAudio}
-          onToggleAudio={handleToggleAudio}
-          isPlaying={isPlaying}
-          intensity={intensity}
-          onIntensityChange={setIntensity}
-          onToggleSessionMode={handleToggleSessionMode}
-          isSessionMode={sessionMode}
-          onToggleDemoAudio={handleToggleDemoAudio}
-          isDemoAudioEnabled={useDemoAudio}
-          strokeSize={strokeSize}
-          onStrokeSizeChange={setStrokeSize}
-          strokeOpacity={strokeOpacity}
-          onStrokeOpacityChange={setStrokeOpacity}
-          emoji={emoji}
-          onEmojiChange={setEmoji}
-          onStampImage={setEngineStampImage}
-          stampOutline={stampOutline}
-          onStampOutlineChange={setStampOutline}
-        />
-      )}
+        {isImmersive && (
+          <button className="floating-menu-button" onClick={exitImmersiveCanvas} aria-label="Réafficher les menus de l'atelier">
+            Menus
+          </button>
+        )}
+      </section>
 
-      {isImmersive && (
-        <button className="floating-menu-button" onClick={exitImmersiveCanvas} aria-label="Réafficher les menus de l'atelier">
-          Menus
-        </button>
-      )}
-    </section>
+      <SaveSessionModal
+        open={showSaveModal}
+        defaultName={defaultSessionLabel}
+        settings={sessionSettings}
+        onCancel={() => setShowSaveModal(false)}
+        onConfirm={handleSave}
+      />
+
+      <ExportBubbleLoopModal
+        open={showExportModal}
+        defaultTitle={defaultExportTitle}
+        settings={sessionSettings}
+        onCancel={() => setShowExportModal(false)}
+        onConfirm={handleExport}
+        busy={isExporting}
+      />
+
+      <ConfirmDeleteModal
+        open={confirmClearOpen}
+        title="Effacer le canevas ?"
+        description="Cette action supprime tous les traits actuels. Aucun retour en arrière possible."
+        onCancel={() => setConfirmClearOpen(false)}
+        onConfirm={confirmClear}
+      />
+    </>
   );
 }

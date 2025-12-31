@@ -1,22 +1,37 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { deleteSession } from '../store/useSessionStore.js';
+import ModalFrame from './ModalFrame.jsx';
+import ConfirmDeleteModal from './ConfirmDeleteModal.jsx';
+import SessionSettingsSummary from './SessionSettingsSummary.jsx';
 
 export default function LibraryModal({ open, sessions, onClose, onLoad, onDelete }) {
-  const handleDelete = (id) => {
-    deleteSession(id);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+
+  const sortedSessions = useMemo(
+    () => sessions.slice().sort((a, b) => b.timestamp - a.timestamp),
+    [sessions]
+  );
+
+  const handleDelete = (session) => {
+    deleteSession(session.id);
     if (onDelete) onDelete();
+    setSessionToDelete(null);
   };
 
   return (
-    <div className={`modal-overlay ${open ? 'active' : ''}`} role="dialog" aria-modal="true">
-      <div className="modal-content">
-        <div className="header-bar" style={{ borderBottom: '1px solid var(--slate-200)' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>Mes Archives</h2>
-          <button className="small-button" onClick={onClose} aria-label="Fermer">✕</button>
-        </div>
-        <div className="modal-body">
-          {sessions.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+    <>
+      <ModalFrame open={open} titleId="library-title" onClose={onClose}>
+        <div className="modal-body modal-body__padded">
+          <div className="modal-heading">
+            <p className="badge">Archives</p>
+            <h2 id="library-title" className="modal-title">
+              Mes sessions enregistrées
+            </h2>
+            <p className="muted">Vérifiez les réglages avant de charger ou de supprimer.</p>
+          </div>
+
+          {sortedSessions.length === 0 && (
+            <div className="empty-state">
               <p className="badge" style={{ marginBottom: '0.4rem', color: 'var(--slate-400)' }}>
                 Le vide est immense
               </p>
@@ -25,23 +40,53 @@ export default function LibraryModal({ open, sessions, onClose, onLoad, onDelete
               </p>
             </div>
           )}
-          {sessions
-            .slice()
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .map((session) => (
-              <div key={session.id} className="session-card glass-panel">
-                <div>
-                  <h3 style={{ fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>{session.name}</h3>
-                  <div className="session-meta">{new Date(session.timestamp).toLocaleDateString()}</div>
+
+          <div className="session-list">
+            {sortedSessions.map((session) => (
+              <div key={session.id} className="session-card glass-panel" aria-label={`Session ${session.name}`}>
+                <div className="session-card__header">
+                  <div>
+                    <h3 style={{ fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>{session.name}</h3>
+                    <div className="session-meta">{new Date(session.timestamp).toLocaleDateString()}</div>
+                  </div>
+                  <div className="session-actions">
+                    <button className="button-primary" onClick={() => onLoad(session)} aria-label={`Charger ${session.name}`}>
+                      Ouvrir
+                    </button>
+                    <button
+                      className="small-button danger-outline"
+                      onClick={() => setSessionToDelete(session)}
+                      aria-label={`Supprimer ${session.name}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.35rem' }}>
-                  <button className="button-primary" onClick={() => onLoad(session)}>Ouvrir</button>
-                  <button className="small-button" onClick={() => handleDelete(session.id)}>✕</button>
-                </div>
+                <SessionSettingsSummary
+                  settings={{
+                    duration: session.duration,
+                    speed: session.speed,
+                    pingPong: session.pingPong,
+                    presence: session.presence,
+                  }}
+                  title="Réglages sauvegardés"
+                />
               </div>
             ))}
+          </div>
         </div>
-      </div>
-    </div>
+      </ModalFrame>
+
+      <ConfirmDeleteModal
+        open={Boolean(sessionToDelete)}
+        description={
+          sessionToDelete
+            ? `La session « ${sessionToDelete.name} » sera supprimée définitivement.`
+            : undefined
+        }
+        onCancel={() => setSessionToDelete(null)}
+        onConfirm={() => sessionToDelete && handleDelete(sessionToDelete)}
+      />
+    </>
   );
 }
