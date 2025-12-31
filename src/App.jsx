@@ -3,6 +3,7 @@ import BubbleBackground from './components/BubbleBackground.jsx';
 import HomeView from './views/HomeView.jsx';
 import ModeView from './views/ModeView.jsx';
 import AtelierView from './views/AtelierView.jsx';
+import GalleryView from './views/GalleryView.jsx';
 import LibraryModal from './components/LibraryModal.jsx';
 import { listSessions } from './store/useSessionStore.js';
 
@@ -16,6 +17,8 @@ export default function App() {
 
   const openLibrary = () => setLibraryOpen(true);
   const closeLibrary = () => setLibraryOpen(false);
+  const goHome = () => setView('home');
+  const goGallery = () => setView('gallery');
 
   const handleSessionLoaded = (session) => {
     setPendingSession(session);
@@ -31,7 +34,7 @@ export default function App() {
       <div className="view-layer">
         {view === 'home' && (
           <div className="app-view active">
-            <HomeView onStart={() => setView('mode')} onOpenLibrary={openLibrary} />
+            <HomeView onStart={() => setView('mode')} onOpenLibrary={openLibrary} onOpenGallery={goGallery} />
           </div>
         )}
         {view === 'mode' && (
@@ -46,6 +49,11 @@ export default function App() {
               onSessionsChange={refreshSessions}
               sessionToLoad={pendingSession}
             />
+          </div>
+        )}
+        {view === 'gallery' && (
+          <div className="app-view active">
+            <GalleryView onBack={goHome} />
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ const PUNCHLINES = [
   'BubbleLoop. Un espace de jeu clinique transnumériste.',
 ];
 
-export default function HomeView({ onStart, onOpenLibrary }) {
+export default function HomeView({ onStart, onOpenLibrary, onOpenGallery }) {
   const [punchlineIndex, setPunchlineIndex] = useState(0);
 
   useEffect(() => {
@@ -61,6 +61,10 @@ export default function HomeView({ onStart, onOpenLibrary }) {
 
           <button className="action-button" onClick={onStart}>
             Démarrer l'expérience
+          </button>
+
+          <button className="ghost pill" onClick={onOpenGallery}>
+            Galerie constellation
           </button>
 
           <button className="secondary-link" onClick={onOpenLibrary}>

@@ -3,6 +3,7 @@ import Header from '../components/Header.jsx';
 import ControlPanel from '../components/ControlPanel.jsx';
 import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
+import { useBubbleLoops } from '../hooks/useBubbleLoops.js';
 
 export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange }) {
   const {
@@ -29,6 +30,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     getSessionData,
     loadSessionData,
   } = useBubbleEngine();
+  const { addBubbleLoop } = useBubbleLoops();
   const [activeTool, setActiveTool] = useState('pencil');
   const [color, setColor] = useState('#1e293b');
   const [duration, setDuration] = useState(10000);
@@ -136,7 +138,24 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   };
 
   const handleExport = async () => {
-    await exportVideo();
+    const blob = await exportVideo();
+    if (blob) {
+      const defaultTitle = sessionName.replace(/projet\s*/i, '').trim() || 'BubbleLoop';
+      const title = window.prompt('Titre de la BubbleLoop :', defaultTitle) || defaultTitle;
+      const rawTags = window.prompt('Tags (séparées par virgule ou espace) :', '') || '';
+      const tags = rawTags
+        .split(/[,\\s]+/)
+        .map((tag) => tag.trim().toLowerCase())
+        .filter(Boolean);
+      await addBubbleLoop({
+        title: title.trim() || 'BubbleLoop',
+        date: Date.now(),
+        tags,
+        duration: Math.round(duration / 1000),
+        videoBlob: blob,
+      });
+      window.alert('BubbleLoop ajoutée à la galerie locale constellation.');
+    }
   };
 
   const handleLoadAudio = (file) => {
