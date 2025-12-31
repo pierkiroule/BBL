@@ -6,7 +6,27 @@ import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
 
 export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange }) {
-  const engine = useBubbleEngine();
+  const {
+    drawingRef,
+    loopRef,
+    start,
+    stop,
+    setTool,
+    setColor: setEngineColor,
+    setDuration: setEngineDuration,
+    toggleGhost,
+    setSymmetry: setEngineSymmetry,
+    toggleSessionMode: toggleEngineSessionMode,
+    exportVideo,
+    progress,
+    setIntensity: setEngineIntensity,
+    setAudioFile,
+    toggleAudio,
+    setDemoAudio,
+    clear,
+    getSessionData,
+    loadSessionData,
+  } = useBubbleEngine();
   const [activeTool, setActiveTool] = useState('pencil');
   const [color, setColor] = useState('#1e293b');
   const [duration, setDuration] = useState(10000);
@@ -20,53 +40,53 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [useDemoAudio, setUseDemoAudio] = useState(false);
 
   useEffect(() => {
-    engine.setTool(activeTool);
-  }, [activeTool, engine]);
+    setTool(activeTool);
+  }, [activeTool, setTool]);
 
   useEffect(() => {
-    engine.setColor(color);
-  }, [color, engine]);
+    setEngineColor(color);
+  }, [color, setEngineColor]);
 
   useEffect(() => {
-    engine.setDuration(duration);
-  }, [duration, engine]);
+    setEngineDuration(duration);
+  }, [duration, setEngineDuration]);
 
   useEffect(() => {
-    engine.toggleGhost(ghostMode);
-  }, [ghostMode, engine]);
+    toggleGhost(ghostMode);
+  }, [ghostMode, toggleGhost]);
 
   useEffect(() => {
-    engine.setSymmetry(symmetry);
-  }, [symmetry, engine]);
+    setEngineSymmetry(symmetry);
+  }, [symmetry, setEngineSymmetry]);
 
   useEffect(() => {
-    engine.setIntensity(intensity);
-  }, [intensity, engine]);
+    setEngineIntensity(intensity);
+  }, [intensity, setEngineIntensity]);
 
   useEffect(() => {
-    engine.start();
-    return () => engine.stop();
-  }, [engine]);
+    start();
+    return () => stop();
+  }, [start, stop]);
 
   useEffect(() => {
     if (sessionToLoad) {
-      engine.loadSessionData(sessionToLoad);
+      loadSessionData(sessionToLoad);
       setSessionName(`Projet ${sessionToLoad.name}`);
       setSessionId(sessionToLoad.id);
       setDuration(sessionToLoad.duration || 10000);
       setColor(sessionToLoad.strokes?.[0]?.color || '#1e293b');
     }
-  }, [engine, sessionToLoad]);
+  }, [loadSessionData, sessionToLoad]);
 
   const handleToggleSessionMode = () => {
     const next = !sessionMode;
     setSessionMode(next);
-    engine.toggleSessionMode(next);
+    toggleEngineSessionMode(next);
     if (next) setSymmetry(1);
   };
 
   const handleSave = () => {
-    const payload = engine.getSessionData();
+    const payload = getSessionData();
     const defaultName = sessionName.replace(/projet\s*/i, '').trim() || 'Sans Titre';
     const name = window.prompt('Nom de la session :', defaultName) || defaultName;
     const saved = saveSessionData({
@@ -81,21 +101,21 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   };
 
   const handleClear = () => {
-    if (window.confirm('Effacer tout ?')) engine.clear();
+    if (window.confirm('Effacer tout ?')) clear();
   };
 
   const handleExport = async () => {
-    await engine.exportVideo();
+    await exportVideo();
   };
 
   const handleLoadAudio = (file) => {
     setUseDemoAudio(false);
     setIsPlaying(false);
-    engine.setAudioFile(file);
+    setAudioFile(file);
   };
 
   const handleToggleAudio = () => {
-    const playing = engine.toggleAudio();
+    const playing = toggleAudio();
     setIsPlaying(playing);
   };
 
@@ -103,7 +123,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     const next = !useDemoAudio;
     setUseDemoAudio(next);
     setIsPlaying(false);
-    engine.setDemoAudio(next);
+    setDemoAudio(next);
   };
 
   const sessionMeta = useMemo(() => sessionName, [sessionName]);
@@ -119,10 +139,10 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
       />
       <main className="canvas-viewport">
         <div className="canvas-wrapper" id="canvas-outer">
-          <canvas ref={engine.loopRef} />
-          <canvas ref={engine.drawingRef} />
+          <canvas ref={loopRef} />
+          <canvas ref={drawingRef} />
         </div>
-        <TimelineBar progress={engine.progress} />
+        <TimelineBar progress={progress} />
       </main>
       <ControlPanel
         color={color}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { exportVideo as recordVideo } from './exportVideo.js';
 
 function getPosition(canvas, event) {
@@ -147,7 +147,7 @@ export function useBubbleEngine() {
 
   const appendStroke = useCallback((stroke) => {
     if (stroke?.points?.length > 1) {
-      strokesRef.current = [...strokesRef.current, stroke];
+      strokesRef.current.push(stroke);
     }
   }, []);
 
@@ -219,9 +219,12 @@ export function useBubbleEngine() {
     stopDrawing();
   }, [stopDrawing]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     initContexts();
     resize();
+  }, [initContexts, resize]);
+
+  useEffect(() => {
     window.addEventListener('resize', resize);
     const canvas = drawingRef.current;
     canvas?.addEventListener('pointerdown', handlePointerDown, { passive: false });
@@ -242,7 +245,7 @@ export function useBubbleEngine() {
       canvas?.removeEventListener('touchmove', handlePointerMove);
       canvas?.removeEventListener('touchend', handlePointerUp);
     };
-  }, [handlePointerDown, handlePointerMove, handlePointerUp, initContexts, resize]);
+  }, [handlePointerDown, handlePointerMove, handlePointerUp, resize]);
 
   useEffect(() => () => revokeFileUrl(), [revokeFileUrl]);
 
