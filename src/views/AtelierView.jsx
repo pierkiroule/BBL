@@ -4,6 +4,7 @@ import ControlPanel from '../components/ControlPanel.jsx';
 import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
 import { useBubbleLoops } from '../hooks/useBubbleLoops.js';
+import OrbitingLoopIndicator from '../components/OrbitingLoopIndicator.jsx';
 
 export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange, onOpenGallery }) {
   const {
@@ -215,8 +216,11 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
 
         <main className="canvas-viewport">
           <div className="canvas-wrapper" id="canvas-outer">
-            <canvas ref={loopRef} />
-            <canvas ref={drawingRef} />
+            <div className="canvas-clip">
+              <canvas ref={loopRef} />
+              <canvas ref={drawingRef} />
+            </div>
+            <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
           </div>
         </main>
       </div>
