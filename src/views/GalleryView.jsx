@@ -24,8 +24,8 @@ export default function GalleryView({ onBack }) {
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0].contentRect;
       setSize({
-        width: rect.width,
-        height: Math.max(360, rect.height),
+        width: rect.width || 720,
+        height: Math.max(420, rect.height || 520),
       });
     });
     observer.observe(containerRef.current);
@@ -41,10 +41,13 @@ export default function GalleryView({ onBack }) {
     });
   }, [loops, tokens]);
 
+  const graphHeight = Math.max(420, size.height || 520);
+  const graphWidth = Math.max(320, size.width || 720);
+
   const { nodes, links } = useConstellationLayout({
     items: filteredLoops,
-    width: size.width || 720,
-    height: size.height || 520,
+    width: graphWidth,
+    height: graphHeight,
   });
 
   useEffect(() => {
@@ -66,7 +69,6 @@ export default function GalleryView({ onBack }) {
   };
 
   const radius = 28;
-  const viewHeight = Math.max(420, size.height - 42);
 
   return (
     <section className="view-content">
@@ -115,7 +117,7 @@ export default function GalleryView({ onBack }) {
               </p>
             </div>
           ) : (
-            <svg width="100%" height={viewHeight} role="img" aria-label="Constellation BubbleLoop">
+            <svg width="100%" height={graphHeight} role="img" aria-label="Constellation BubbleLoop">
               <g className="links">
                 {links.map((link) => {
                   const source = nodes.find((n) => n.id === link.source);

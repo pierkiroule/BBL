@@ -47,8 +47,11 @@ export function useConstellationLayout({ items, width = 720, height = 520 }) {
   const sizeRef = useRef({ width, height });
 
   useEffect(() => {
-    sizeRef.current = { width, height };
-  }, [width, height]);
+    sizeRef.current = {
+      width: Math.max(120, width || 0),
+      height: Math.max(120, height || 0),
+    };
+  }, [height, width]);
 
   useEffect(() => {
     const preparedNodes = initNodes(items, width, height);
@@ -69,7 +72,9 @@ export function useConstellationLayout({ items, width = 720, height = 520 }) {
       lastUpdate = now;
       const currentNodes = nodesRef.current;
       const currentLinks = linksRef.current;
-      const { width: w, height: h } = sizeRef.current;
+      const { width: wRaw, height: hRaw } = sizeRef.current;
+      const w = Math.max(120, wRaw || 0);
+      const h = Math.max(120, hRaw || 0);
       const cx = w / 2;
       const cy = h / 2;
 
