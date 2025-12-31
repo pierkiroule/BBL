@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import Header from '../components/Header.jsx';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ControlPanel from '../components/ControlPanel.jsx';
 import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
@@ -29,7 +28,7 @@ function defaultSizeForTool(tool) {
   }
 }
 
-export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange, onOpenGallery }) {
+export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange, onOpenGallery, onHeaderUpdate }) {
   const {
     drawingRef,
     loopRef,
@@ -161,14 +160,14 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     }
   }, [loadSessionData, sessionToLoad]);
 
-  const handleToggleSessionMode = () => {
+  const handleToggleSessionMode = useCallback(() => {
     const next = !sessionMode;
     setSessionMode(next);
     toggleEngineSessionMode(next);
     if (next) setSymmetry(1);
-  };
+  }, [sessionMode, toggleEngineSessionMode, setSymmetry]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const payload = getSessionData();
     const defaultName = sessionName.replace(/projet\s*/i, '').trim() || 'Sans Titre';
     const name = window.prompt('Nom de la session :', defaultName) || defaultName;
@@ -185,7 +184,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     setSessionId(saved.id);
     setSessionName(`Projet ${saved.name}`);
     if (onSessionsChange) onSessionsChange();
-  };
+  }, [getSessionData, onSessionsChange, sessionId, sessionName]);
 
   const handleClear = () => {
     if (window.confirm('Effacer tout ?')) clear();
@@ -240,19 +239,21 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const enterImmersiveCanvas = () => setIsImmersive(true);
   const exitImmersiveCanvas = () => setIsImmersive(false);
 
+  useEffect(() => {
+    if (!onHeaderUpdate) return undefined;
+    onHeaderUpdate({
+      sessionName: sessionMeta,
+      onSaveSession: handleSave,
+      onToggleSessionMode: handleToggleSessionMode,
+      isSessionMode: sessionMode,
+      onOpenGallery,
+      onOpenLibrary,
+    });
+    return () => onHeaderUpdate(null);
+  }, [onHeaderUpdate, sessionMeta, handleSave, handleToggleSessionMode, sessionMode, onOpenGallery, onOpenLibrary]);
+
   return (
     <section className={`view-content atelier-view ${isImmersive ? 'immersive' : ''}`} style={{ flex: 1 }}>
-      {!isImmersive && (
-        <Header
-          sessionName={sessionMeta}
-          onOpenLibrary={onOpenLibrary}
-          onSaveSession={handleSave}
-          onToggleSessionMode={handleToggleSessionMode}
-          isSessionMode={sessionMode}
-          onOpenGallery={onOpenGallery}
-        />
-      )}
-
       <div className="canvas-stage">
         <div className="canvas-toolbar glass-panel">
           <div className="canvas-hints">

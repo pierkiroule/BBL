@@ -209,6 +209,60 @@ button {
   justify-content: space-between;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--slate-200);
+  gap: 1rem;
+}
+
+.header-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--slate-700);
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.85rem;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: var(--slate-900);
+  background: rgba(99, 102, 241, 0.08);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.nav-link.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.25);
+}
+
+.nav-toggle {
+  display: none;
+  background: white;
+  border: 1px solid var(--slate-200);
+  width: 42px;
+  height: 42px;
+  border-radius: 0.9rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.nav-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .atelier-view {
@@ -1070,20 +1124,16 @@ input[type="range"] { accent-color: var(--primary); }
   }
 
   .header-bar {
-    position: sticky;
-    top: 0.75rem;
-    z-index: 20;
-    border-radius: 1.25rem;
-    margin-bottom: 0.5rem;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: 0.75rem;
   }
 
-  .header-bar > div:last-child {
+  .header-actions {
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
   .control-panel {
@@ -1103,6 +1153,35 @@ input[type="range"] { accent-color: var(--primary); }
 
   .switch-grid {
     grid-template-columns: 1fr;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .header-nav {
+    width: 100%;
+    order: 3;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    display: none;
+  }
+
+  .header-nav.open {
+    display: flex;
+  }
+
+  .nav-link {
+    text-align: left;
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--slate-200);
+    background: white;
+  }
+
+  .nav-link.active {
+    background: linear-gradient(90deg, var(--primary), #7c3aed);
   }
 
   .footer-actions {
