@@ -17,7 +17,7 @@ export default function GalleryView({ onBack }) {
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState(null);
   const containerRef = useRef(null);
-  const [size, setSize] = useState({ width: 720, height: 520 });
+  const [size, setSize] = useState({ width: 720 });
 
   useEffect(() => {
     if (!containerRef.current) return () => {};
@@ -25,7 +25,6 @@ export default function GalleryView({ onBack }) {
       const rect = entries[0].contentRect;
       setSize({
         width: rect.width || 720,
-        height: Math.max(420, rect.height || 520),
       });
     });
     observer.observe(containerRef.current);
@@ -41,8 +40,8 @@ export default function GalleryView({ onBack }) {
     });
   }, [loops, tokens]);
 
-  const graphHeight = Math.max(420, size.height || 520);
   const graphWidth = Math.max(320, size.width || 720);
+  const graphHeight = Math.max(420, Math.min(720, Math.round(graphWidth * 0.65)));
 
   const { nodes, links } = useConstellationLayout({
     items: filteredLoops,

@@ -801,6 +801,7 @@ input[type="range"] { accent-color: var(--primary); }
   border: 1px solid var(--slate-200);
   border-radius: 1.25rem;
   padding: 0.75rem;
+  overflow: hidden;
 }
 
 .graph-area svg {
