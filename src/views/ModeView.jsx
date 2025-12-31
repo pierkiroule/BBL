@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function ModeView({ onSelect, onBack }) {
   return (
-    <section className="app-view centered" style={{ padding: '2.5rem', gap: '2rem' }}>
+    <section className="view-content centered" style={{ padding: '2.5rem', gap: '2rem' }}>
       <div style={{ textAlign: 'center' }}>
         <h2 style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic', color: 'var(--slate-800)' }}>
           Mode de création

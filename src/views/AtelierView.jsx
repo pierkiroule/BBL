@@ -99,7 +99,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const sessionMeta = useMemo(() => sessionName, [sessionName]);
 
   return (
-    <section className="app-view" style={{ flex: 1 }}>
+    <section className="view-content" style={{ flex: 1 }}>
       <Header
         sessionName={sessionMeta}
         onOpenLibrary={onOpenLibrary}

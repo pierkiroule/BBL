@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function HomeView({ onStart, onOpenLibrary }) {
   return (
-    <section className="app-view centered" style={{ padding: '2rem', textAlign: 'center' }}>
+    <section className="view-content centered" style={{ padding: '2rem', textAlign: 'center' }}>
       <div className="centered" style={{ flexDirection: 'column', gap: '1.5rem' }}>
         <div className="hero-badge">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
