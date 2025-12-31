@@ -86,6 +86,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [showExportModal, setShowExportModal] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exitAnnouncement, setExitAnnouncement] = useState('');
 
   useEffect(() => {
     setTool(activeTool);
@@ -265,8 +266,31 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     [sessionName]
   );
 
-  const enterImmersiveCanvas = () => setIsImmersive(true);
-  const exitImmersiveCanvas = () => setIsImmersive(false);
+  const enterImmersiveCanvas = useCallback(() => setIsImmersive(true), []);
+  const exitImmersiveCanvas = useCallback(() => {
+    setIsImmersive(false);
+    setExitAnnouncement('Mode immersif quitté. Les menus sont de retour.');
+  }, []);
+
+  useEffect(() => {
+    if (!exitAnnouncement) return undefined;
+    const timeout = setTimeout(() => setExitAnnouncement(''), 3200);
+    return () => clearTimeout(timeout);
+  }, [exitAnnouncement]);
+
+  useEffect(() => {
+    if (!isImmersive) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        exitImmersiveCanvas();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [exitImmersiveCanvas, isImmersive]);
 
   useEffect(() => {
     if (!onHeaderUpdate) return undefined;
@@ -356,6 +380,10 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
             Menus
           </button>
         )}
+
+        <div className={`immersive-toast ${exitAnnouncement ? 'visible' : ''}`} role="status" aria-live="polite">
+          {exitAnnouncement}
+        </div>
       </section>
 
       <SaveSessionModal
