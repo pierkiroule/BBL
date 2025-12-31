@@ -1,0 +1,11 @@
+{
+  "name": "BBL BubbleLoop",
+  "short_name": "BubbleLoop",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
+  "description": "BubbleLoop : une expérience de dessin en boucle, pensée mobile-first pour la co-création transnumériste.",
+  "orientation": "portrait-primary",
+  "lang": "fr"
+}

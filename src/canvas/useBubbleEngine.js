@@ -14,9 +14,9 @@ function getPosition(canvas, event) {
   return { x, y };
 }
 
-function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res) {
+function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res, displaySize) {
   if (!stroke?.points?.length) return;
-  const size = ctx.canvas.width;
+  const size = displaySize || ctx.canvas.width;
   const cx = size / 2;
   const cy = size / 2;
   const now = Date.now();
@@ -90,6 +90,7 @@ export function useBubbleEngine() {
   const sourceRef = useRef(null);
   const audioElRef = useRef(null);
   const resonanceRef = useRef({ bass: 0, mid: 0, treble: 0 });
+  const displaySizeRef = useRef(0);
 
   const initContexts = useCallback(() => {
     if (!drawingRef.current || !loopRef.current) return;
@@ -106,12 +107,24 @@ export function useBubbleEngine() {
   const resize = useCallback(() => {
     const container = drawingRef.current?.parentElement;
     if (!container) return;
-    const size = container.clientWidth;
+    const rect = container.getBoundingClientRect();
+    const size = Math.max(200, Math.min(rect.width, rect.height || rect.width));
     if (!size) return;
+    displaySizeRef.current = size;
+    const dpr = window.devicePixelRatio || 1;
     [drawingRef.current, loopRef.current].forEach((canvas) => {
       if (canvas) {
-        canvas.width = size;
-        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        if (ctx) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.scale(dpr, dpr);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+        }
       }
     });
   }, []);
@@ -124,13 +137,15 @@ export function useBubbleEngine() {
       }
       currentStrokeRef.current = null;
       if (drawCtxRef.current) {
-        drawCtxRef.current.clearRect(0, 0, drawCtxRef.current.canvas.width, drawCtxRef.current.canvas.height);
+        const size = displaySizeRef.current || drawCtxRef.current.canvas.width;
+        drawCtxRef.current.clearRect(0, 0, size, size);
       }
     }
   }, []);
 
   const handlePointerDown = useCallback(
     (event) => {
+      event.preventDefault();
       if (!drawingRef.current) return;
       const pos = getPosition(drawingRef.current, event);
       if (!pos) return;
@@ -152,6 +167,7 @@ export function useBubbleEngine() {
 
   const handlePointerMove = useCallback(
     (event) => {
+      if (isDrawingRef.current) event.preventDefault();
       if (!isDrawingRef.current || !drawingRef.current) return;
       const pos = getPosition(drawingRef.current, event);
       if (pos) {
@@ -176,6 +192,7 @@ export function useBubbleEngine() {
     canvas?.addEventListener('pointerdown', handlePointerDown, { passive: false });
     window.addEventListener('pointermove', handlePointerMove, { passive: false });
     window.addEventListener('pointerup', handlePointerUp, { passive: false });
+    window.addEventListener('pointercancel', handlePointerUp, { passive: false });
     canvas?.addEventListener('touchstart', handlePointerDown, { passive: false });
     canvas?.addEventListener('touchmove', handlePointerMove, { passive: false });
     canvas?.addEventListener('touchend', handlePointerUp, { passive: false });
@@ -185,6 +202,7 @@ export function useBubbleEngine() {
       canvas?.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       canvas?.removeEventListener('touchstart', handlePointerDown);
       canvas?.removeEventListener('touchmove', handlePointerMove);
       canvas?.removeEventListener('touchend', handlePointerUp);
@@ -205,12 +223,13 @@ export function useBubbleEngine() {
   }, []);
 
   const renderFrame = useCallback(
-    (ctx, time, res) => {
+    (ctx, time, res, sizeOverride) => {
       if (!ctx) return;
-      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, loopDurationRef.current, symmetryRef.current, true, res));
-      strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res));
-      if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res);
+      const size = sizeOverride || displaySizeRef.current || ctx.canvas.width;
+      ctx.clearRect(0, 0, size, size);
+      if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, loopDurationRef.current, symmetryRef.current, true, res, size));
+      strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size));
+      if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size);
     },
     []
   );
@@ -308,17 +327,31 @@ export function useBubbleEngine() {
   const clear = useCallback(() => {
     strokesRef.current = [];
     currentStrokeRef.current = null;
-    if (loopCtxRef.current) loopCtxRef.current.clearRect(0, 0, loopCtxRef.current.canvas.width, loopCtxRef.current.canvas.height);
+    const size = displaySizeRef.current || loopCtxRef.current?.canvas.width || 0;
+    if (loopCtxRef.current) loopCtxRef.current.clearRect(0, 0, size, size);
+    if (drawCtxRef.current) drawCtxRef.current.clearRect(0, 0, size, size);
   }, []);
 
   const handleExport = useCallback(async () => {
+    if (typeof MediaRecorder === 'undefined') {
+      window.alert("L'export vidéo n'est pas supporté sur ce navigateur.");
+      return;
+    }
+    if (!strokesRef.current.length && !currentStrokeRef.current) {
+      window.alert('Ajoutez un tracé avant de lancer un export.');
+      return;
+    }
+
     const buffer = document.createElement('canvas');
-    buffer.width = 500;
-    buffer.height = 500;
+    const exportSize = 640;
+    buffer.width = exportSize;
+    buffer.height = exportSize;
     const ctx = buffer.getContext('2d');
     const duration = loopDurationRef.current;
     const startTime = Date.now();
-    const capture = setInterval(() => {
+    let capture;
+
+    const drawFrameForExport = () => {
       const elapsed = (Date.now() - startTime) % duration;
       ctx.save();
       ctx.fillStyle = '#f1f5f9';
@@ -328,19 +361,27 @@ export function useBubbleEngine() {
       ctx.fillStyle = '#fff';
       ctx.fill();
       ctx.clip();
-      renderFrame(ctx, elapsed, resonanceRef.current);
+      renderFrame(ctx, elapsed, resonanceRef.current, exportSize);
       ctx.restore();
-    }, 1000 / 30);
+    };
 
-    const blob = await recordVideo({ canvas: buffer, duration });
-    clearInterval(capture);
-    if (blob) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bbl-loop-${Date.now()}.webm`;
-      a.click();
-      URL.revokeObjectURL(url);
+    drawFrameForExport();
+    capture = setInterval(drawFrameForExport, 1000 / 30);
+
+    try {
+      const blob = await recordVideo({ canvas: buffer, duration });
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bbl-loop-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        window.alert("L'export vidéo a échoué. Réessayez avec un autre navigateur.");
+      }
+    } finally {
+      if (capture) clearInterval(capture);
     }
   }, [renderFrame]);
 
