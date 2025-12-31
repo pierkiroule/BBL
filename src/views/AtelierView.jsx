@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Header from '../components/Header.jsx';
 import ControlPanel from '../components/ControlPanel.jsx';
-import TimelineBar from '../components/TimelineBar.jsx';
 import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
 
@@ -14,11 +13,14 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     setTool,
     setColor: setEngineColor,
     setDuration: setEngineDuration,
+    setSpeed: setEngineSpeed,
+    setPause: setEnginePause,
+    setPingPong: setEnginePingPong,
+    setPresence: setEnginePresence,
     toggleGhost,
     setSymmetry: setEngineSymmetry,
     toggleSessionMode: toggleEngineSessionMode,
     exportVideo,
-    progress,
     setIntensity: setEngineIntensity,
     setAudioFile,
     toggleAudio,
@@ -30,7 +32,11 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [activeTool, setActiveTool] = useState('pencil');
   const [color, setColor] = useState('#1e293b');
   const [duration, setDuration] = useState(10000);
+  const [speed, setSpeed] = useState(1);
+  const [isPaused, setIsPaused] = useState(false);
+  const [pingPong, setPingPong] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
+  const [presence, setPresence] = useState(0.8);
   const [symmetry, setSymmetry] = useState(1);
   const [sessionMode, setSessionMode] = useState(false);
   const [sessionName, setSessionName] = useState('Projet Sans Titre');
@@ -50,6 +56,22 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   useEffect(() => {
     setEngineDuration(duration);
   }, [duration, setEngineDuration]);
+
+  useEffect(() => {
+    setEngineSpeed(speed);
+  }, [setEngineSpeed, speed]);
+
+  useEffect(() => {
+    setEnginePause(isPaused);
+  }, [isPaused, setEnginePause]);
+
+  useEffect(() => {
+    setEnginePingPong(pingPong);
+  }, [pingPong, setEnginePingPong]);
+
+  useEffect(() => {
+    setEnginePresence(presence);
+  }, [presence, setEnginePresence]);
 
   useEffect(() => {
     toggleGhost(ghostMode);
@@ -74,6 +96,11 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
       setSessionName(`Projet ${sessionToLoad.name}`);
       setSessionId(sessionToLoad.id);
       setDuration(sessionToLoad.duration || 10000);
+      setSpeed(sessionToLoad.speed ?? 1);
+      setPingPong(!!sessionToLoad.pingPong);
+      setPresence(typeof sessionToLoad.presence === 'number' ? sessionToLoad.presence : 0.8);
+      setGhostMode(!!sessionToLoad.ghost);
+      setIsPaused(false);
       setColor(sessionToLoad.strokes?.[0]?.color || '#1e293b');
     }
   }, [loadSessionData, sessionToLoad]);
@@ -94,6 +121,10 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
       name: name.toUpperCase(),
       strokes: payload.strokes,
       duration: payload.duration,
+      speed: payload.speed,
+      pingPong: payload.pingPong,
+      presence: payload.presence,
+      ghost: payload.ghost,
     });
     setSessionId(saved.id);
     setSessionName(`Projet ${saved.name}`);
@@ -142,13 +173,20 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
           <canvas ref={loopRef} />
           <canvas ref={drawingRef} />
         </div>
-        <TimelineBar progress={progress} />
       </main>
       <ControlPanel
         color={color}
         onColorChange={setColor}
         duration={duration}
         onDurationChange={setDuration}
+        speed={speed}
+        onSpeedChange={setSpeed}
+        isPaused={isPaused}
+        onPauseToggle={() => setIsPaused((v) => !v)}
+        pingPong={pingPong}
+        onPingPongToggle={() => setPingPong((v) => !v)}
+        presence={presence}
+        onPresenceChange={setPresence}
         onGhostToggle={() => setGhostMode((v) => !v)}
         ghostMode={ghostMode}
         onSymmetryToggle={() => setSymmetry((v) => (v === 1 ? 6 : 1))}

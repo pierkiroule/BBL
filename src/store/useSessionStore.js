@@ -27,8 +27,17 @@ export function saveSession(data) {
   return session;
 }
 
-export function saveSessionData({ id, name, strokes, duration }) {
-  const session = saveSession({ id: id || Date.now(), name, strokes, duration });
+export function saveSessionData({ id, name, strokes, duration, speed, pingPong, presence, ghost }) {
+  const session = saveSession({
+    id: id || Date.now(),
+    name,
+    strokes,
+    duration,
+    speed,
+    pingPong,
+    presence,
+    ghost,
+  });
   return session;
 }
 
