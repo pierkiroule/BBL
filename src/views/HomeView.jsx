@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 
 const PUNCHLINES = [
-  'Une adaptation transnumériste\ndu squiggle de Winnicott.',
-  'Un dispositif de co-création\nfondé sur l’aire transitionnelle.',
-  'Le dessin comme médiation,\nnon comme production à interpréter.',
-  'Le temps intégré\ncomme tiers relationnel.',
-  'Un looper transmedia\nau service du processus.',
-  'Aucune analyse automatique.\nAucun scoring.',
-  'Un cadre contenant,\nfavorisant le jeu et l’exploration.',
-  'Pensé pour la psychothérapie,\nl’art-thérapie et la médiation.',
-  'Le numérique utilisé\ncomme support de la relation.',
-  'BubbleLoop.\nUn espace de jeu clinique transnumériste.',
+  'Une adaptation transnumériste du squiggle de Winnicott.',
+  'Un dispositif de co-création fondé sur l’aire transitionnelle.',
+  'Le dessin comme médiation, non comme production à interpréter.',
+  'Le temps intégré comme tiers relationnel.',
+  'Un looper transmedia au service du processus.',
+  'Aucune analyse automatique. Aucun scoring.',
+  'Un cadre contenant, favorisant le jeu et l’exploration.',
+  'Pensé pour la psychothérapie, l’art-thérapie et la médiation.',
+  'Le numérique utilisé comme support de la relation.',
+  'BubbleLoop. Un espace de jeu clinique transnumériste.',
 ];
 
 export default function HomeView({ onStart, onOpenLibrary }) {
@@ -97,14 +97,7 @@ export default function HomeView({ onStart, onOpenLibrary }) {
               </button>
             </div>
           </div>
-          <div className="punchline-slide">
-            {PUNCHLINES[punchlineIndex].split('\n').map((line, idx) => (
-              <span key={line + idx}>
-                {line}
-                {idx < PUNCHLINES[punchlineIndex].split('\n').length - 1 && <br />}
-              </span>
-            ))}
-          </div>
+          <div className="punchline-slide">{PUNCHLINES[punchlineIndex]}</div>
           <div className="punchline-dots" role="tablist" aria-label="Punchlines BubbleLoop">
             {PUNCHLINES.map((_, idx) => (
               <button
