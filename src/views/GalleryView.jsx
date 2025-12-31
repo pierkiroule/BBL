@@ -62,6 +62,7 @@ export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
 
   const visibleCount = filteredLoops.length;
   const totalCount = loops.length;
+  const hasLoops = totalCount > 0;
 
   const handleSelect = (nodeId) => {
     setSelected(nodeId);
@@ -116,11 +117,26 @@ export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
         <div className="graph-area" style={{ minHeight: '420px' }}>
           {visibleCount === 0 ? (
             <div className="empty-state">
-              <p className="badge">Aucune bulle trouvée</p>
-              <p className="muted">
-                Exportez une BubbleLoop depuis l’atelier pour nourrir la constellation, puis taguez-la pour la retrouver
-                facilement.
-              </p>
+              <p className="badge">{hasLoops ? 'Ajustez vos tags' : 'Constellation vide'}</p>
+              <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+                <p className="muted">
+                  {hasLoops
+                    ? 'Aucune BubbleLoop ne correspond à ces tags. Allégez le filtre ou explorez d’autres mots clés pour retrouver vos exports.'
+                    : 'Depuis l’atelier, exportez votre BubbleLoop avec un titre et des tags pour nourrir la constellation.'}
+                </p>
+
+                {!hasLoops && onNavigateAtelier && (
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={onNavigateAtelier}
+                    aria-label="Créer ma première BubbleLoop dans l’atelier"
+                    style={{ marginTop: '1rem' }}
+                  >
+                    Créer ma première BubbleLoop
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <svg width="100%" height={graphHeight} role="img" aria-label="Constellation BubbleLoop">
