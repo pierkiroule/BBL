@@ -89,8 +89,24 @@ export function useBubbleEngine() {
   const dataArrayRef = useRef(null);
   const sourceRef = useRef(null);
   const audioElRef = useRef(null);
+  const fileUrlRef = useRef(null);
   const resonanceRef = useRef({ bass: 0, mid: 0, treble: 0 });
   const displaySizeRef = useRef(0);
+
+  const ensureAudioElement = useCallback(() => {
+    if (!audioElRef.current) {
+      audioElRef.current = new Audio();
+      audioElRef.current.loop = true;
+    }
+    return audioElRef.current;
+  }, []);
+
+  const revokeFileUrl = useCallback(() => {
+    if (fileUrlRef.current) {
+      URL.revokeObjectURL(fileUrlRef.current);
+      fileUrlRef.current = null;
+    }
+  }, []);
 
   const initContexts = useCallback(() => {
     if (!drawingRef.current || !loopRef.current) return;
@@ -153,10 +169,7 @@ export function useBubbleEngine() {
       if (!drawingRef.current) return;
       const pos = getPosition(drawingRef.current, event);
       if (!pos) return;
-      if (!audioElRef.current) {
-        audioElRef.current = new Audio();
-        audioElRef.current.loop = true;
-      }
+      ensureAudioElement();
       isDrawingRef.current = true;
       const currentTime = (Date.now() - startTimeRef.current) % loopDurationRef.current;
       currentStrokeRef.current = {
@@ -230,6 +243,8 @@ export function useBubbleEngine() {
       canvas?.removeEventListener('touchend', handlePointerUp);
     };
   }, [handlePointerDown, handlePointerMove, handlePointerUp, initContexts, resize]);
+
+  useEffect(() => () => revokeFileUrl(), [revokeFileUrl]);
 
   const ensureAudioContext = useCallback(() => {
     if (!audioElRef.current) return;
@@ -325,26 +340,52 @@ export function useBubbleEngine() {
     sensitivityRef.current = value;
   }, []);
 
-  const setAudioFile = useCallback((file) => {
-    if (!file) return;
-    if (!audioElRef.current) {
-      audioElRef.current = new Audio();
-      audioElRef.current.loop = true;
+  const clearAudioSource = useCallback(() => {
+    revokeFileUrl();
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current.currentTime = 0;
+      audioElRef.current.removeAttribute('src');
+      audioElRef.current.load();
     }
-    audioElRef.current.src = URL.createObjectURL(file);
-  }, []);
+  }, [revokeFileUrl]);
+
+  const setAudioFile = useCallback(
+    (file) => {
+      if (!file) return;
+      const audioEl = ensureAudioElement();
+      revokeFileUrl();
+      fileUrlRef.current = URL.createObjectURL(file);
+      audioEl.src = fileUrlRef.current;
+    },
+    [ensureAudioElement, revokeFileUrl]
+  );
+
+  const setDemoAudio = useCallback(
+    (enabled) => {
+      if (enabled) {
+        const audioEl = ensureAudioElement();
+        revokeFileUrl();
+        audioEl.src = '/audio/Demo.mp3';
+        return;
+      }
+      clearAudioSource();
+    },
+    [clearAudioSource, ensureAudioElement, revokeFileUrl]
+  );
 
   const toggleAudio = useCallback(() => {
-    if (!audioElRef.current) return false;
+    const audioEl = ensureAudioElement();
+    if (!audioEl.src) return false;
     ensureAudioContext();
-    if (audioElRef.current.paused) {
+    if (audioEl.paused) {
       if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
-      audioElRef.current.play();
+      audioEl.play();
       return true;
     }
-    audioElRef.current.pause();
+    audioEl.pause();
     return false;
-  }, [ensureAudioContext]);
+  }, [ensureAudioContext, ensureAudioElement]);
 
   const clear = useCallback(() => {
     strokesRef.current = [];
@@ -434,6 +475,7 @@ export function useBubbleEngine() {
     progress,
     setIntensity,
     setAudioFile,
+    setDemoAudio,
     toggleAudio,
     clear,
     getSessionData,

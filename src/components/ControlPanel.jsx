@@ -28,6 +28,8 @@ export default function ControlPanel({
   onIntensityChange,
   onToggleSessionMode,
   isSessionMode,
+  onToggleDemoAudio,
+  isDemoAudioEnabled,
 }) {
   const tools = useMemo(
     () => [
@@ -73,6 +75,13 @@ export default function ControlPanel({
             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)' }}>{Math.round(intensity * 100)}%</span>
           </div>
           <div className="slider-row">
+            <button
+              className={`ghost ${isDemoAudioEnabled ? 'active' : ''}`}
+              onClick={onToggleDemoAudio}
+              style={{ minWidth: '95px' }}
+            >
+              {isDemoAudioEnabled ? 'Démo audio' : 'Audio perso'}
+            </button>
             <label className="small-button" style={{ cursor: 'pointer' }}>
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                 <path d="M9 19V5l12-2v14M12 15V3" />

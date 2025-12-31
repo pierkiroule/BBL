@@ -17,6 +17,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [sessionId, setSessionId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [intensity, setIntensity] = useState(0.5);
+  const [useDemoAudio, setUseDemoAudio] = useState(false);
 
   useEffect(() => {
     engine.setTool(activeTool);
@@ -88,12 +89,21 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   };
 
   const handleLoadAudio = (file) => {
+    setUseDemoAudio(false);
+    setIsPlaying(false);
     engine.setAudioFile(file);
   };
 
   const handleToggleAudio = () => {
     const playing = engine.toggleAudio();
     setIsPlaying(playing);
+  };
+
+  const handleToggleDemoAudio = () => {
+    const next = !useDemoAudio;
+    setUseDemoAudio(next);
+    setIsPlaying(false);
+    engine.setDemoAudio(next);
   };
 
   const sessionMeta = useMemo(() => sessionName, [sessionName]);
@@ -134,6 +144,8 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
         onIntensityChange={setIntensity}
         onToggleSessionMode={handleToggleSessionMode}
         isSessionMode={sessionMode}
+        onToggleDemoAudio={handleToggleDemoAudio}
+        isDemoAudioEnabled={useDemoAudio}
       />
     </section>
   );
