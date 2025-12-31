@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { exportVideo as recordVideo } from './exportVideo.js';
+import { useLoopTime } from './useLoopTime.js';
 
 function getPosition(canvas, event) {
   const rect = canvas.getBoundingClientRect();
@@ -14,7 +15,7 @@ function getPosition(canvas, event) {
   return { x, y };
 }
 
-function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res, displaySize) {
+function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res, displaySize, presence = 1) {
   if (!stroke?.points?.length) return;
   const size = displaySize || ctx.canvas.width;
   const cx = size / 2;
@@ -29,7 +30,9 @@ function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res, displaySize)
     ctx.beginPath();
     ctx.strokeStyle = stroke.color;
     ctx.lineWidth = stroke.size + (res.bass * 20);
-    ctx.globalAlpha = isGhost ? 0.08 : 0.8 + res.bass * 0.2;
+    const liveAlpha = Math.min(1, 0.2 + presence * 0.9);
+    const ghostAlpha = 0.04 + presence * 0.08;
+    ctx.globalAlpha = isGhost ? ghostAlpha : Math.min(1, liveAlpha * (0.8 + res.bass * 0.2));
     ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
 
     if (stroke.tool === 'brush') {
@@ -71,18 +74,28 @@ export function useBubbleEngine() {
   const loopCtxRef = useRef(null);
   const strokesRef = useRef([]);
   const currentStrokeRef = useRef(null);
-  const loopDurationRef = useRef(10000);
-  const startTimeRef = useRef(Date.now());
   const symmetryRef = useRef(1);
   const ghostRef = useRef(false);
+  const presenceRef = useRef(0.8);
   const toolRef = useRef('pencil');
   const colorRef = useRef('#1e293b');
   const isDrawingRef = useRef(false);
   const rafRef = useRef(null);
-  const progressRef = useRef(0);
   const sessionModeRef = useRef(false);
   const sensitivityRef = useRef(0.5);
-  const [progress, setProgress] = useState(0);
+  const loopTime = useLoopTime(10000);
+  const {
+    getLoopState,
+    setDuration: setLoopDuration,
+    setSpeed: setLoopSpeed,
+    setPause: setLoopPause,
+    setPingPong: setLoopPingPong,
+    isPingPong,
+    mapElapsedToLoopTime,
+    resetClock,
+    getDuration,
+    getSpeed,
+  } = loopTime;
 
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
@@ -171,7 +184,7 @@ export function useBubbleEngine() {
       if (!pos) return;
       ensureAudioElement();
       isDrawingRef.current = true;
-      const currentTime = (Date.now() - startTimeRef.current) % loopDurationRef.current;
+      const { time: currentTime } = getLoopState();
       currentStrokeRef.current = {
         tool: toolRef.current,
         color: colorRef.current,
@@ -179,7 +192,7 @@ export function useBubbleEngine() {
         points: [{ ...pos, t: currentTime }],
       };
     },
-    []
+    [ensureAudioElement, getLoopState]
   );
 
   const handlePointerMove = useCallback(
@@ -188,14 +201,17 @@ export function useBubbleEngine() {
       if (!isDrawingRef.current || !drawingRef.current) return;
       const pos = getPosition(drawingRef.current, event);
       if (pos) {
-        const currentTime = (Date.now() - startTimeRef.current) % loopDurationRef.current;
+        const { time: currentTime } = getLoopState();
+        const duration = getDuration();
         const stroke = currentStrokeRef.current;
         const lastPoint = stroke?.points?.[stroke.points.length - 1];
 
-        if (stroke && lastPoint && currentTime < lastPoint.t) {
+        const hasLoopRestarted = !isPingPong() && stroke && lastPoint && currentTime < lastPoint.t;
+
+        if (stroke && lastPoint && hasLoopRestarted) {
           const completedStroke = {
             ...stroke,
-            points: [...stroke.points, { ...lastPoint, t: loopDurationRef.current }],
+            points: [...stroke.points, { ...lastPoint, t: duration }],
           };
           appendStroke(completedStroke);
           currentStrokeRef.current = {
@@ -212,7 +228,7 @@ export function useBubbleEngine() {
         stopDrawing();
       }
     },
-    [appendStroke, stopDrawing]
+    [appendStroke, getDuration, getLoopState, isPingPong, stopDrawing]
   );
 
   const handlePointerUp = useCallback(() => {
@@ -266,21 +282,20 @@ export function useBubbleEngine() {
     (ctx, time, res, sizeOverride) => {
       if (!ctx) return;
       const size = sizeOverride || displaySizeRef.current || ctx.canvas.width;
+      const duration = getDuration();
       ctx.clearRect(0, 0, size, size);
-      if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, loopDurationRef.current, symmetryRef.current, true, res, size));
-      strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size));
-      if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size);
+      if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, duration, symmetryRef.current, true, res, size, presenceRef.current));
+      strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size, presenceRef.current));
+      if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size, presenceRef.current);
     },
-    []
+    [getDuration]
   );
 
   const tick = useCallback(() => {
     const loopCtx = loopCtxRef.current;
     if (loopCtx) {
-      const now = Date.now();
-      const elapsed = (now - startTimeRef.current) % loopDurationRef.current;
-      progressRef.current = elapsed / loopDurationRef.current;
-      setProgress(progressRef.current);
+      const { time } = getLoopState();
+      const elapsed = time;
 
       if (audioElRef.current && !audioElRef.current.paused && analyserRef.current && dataArrayRef.current) {
         analyserRef.current.getByteFrequencyData(dataArrayRef.current);
@@ -299,13 +314,13 @@ export function useBubbleEngine() {
       renderFrame(loopCtx, elapsed, resonanceRef.current);
     }
     rafRef.current = requestAnimationFrame(tick);
-  }, [renderFrame]);
+  }, [getLoopState, renderFrame]);
 
   const start = useCallback(() => {
     if (rafRef.current) return;
-    startTimeRef.current = Date.now();
+    resetClock();
     tick();
-  }, [tick]);
+  }, [resetClock, tick]);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -320,13 +335,45 @@ export function useBubbleEngine() {
     colorRef.current = color;
   }, []);
 
+  const rescaleStrokes = useCallback(
+    (ratio, nextDuration) => {
+      if (!ratio || Number.isNaN(ratio) || !Number.isFinite(ratio)) return;
+      const clampDuration = nextDuration || getDuration();
+      const scaleStroke = (stroke) => ({
+        ...stroke,
+        points: (stroke.points || []).map((p) => ({ ...p, t: Math.min(clampDuration, p.t * ratio) })),
+      });
+      strokesRef.current = strokesRef.current.map(scaleStroke);
+      if (currentStrokeRef.current) currentStrokeRef.current = scaleStroke(currentStrokeRef.current);
+    },
+    [getDuration]
+  );
+
   const setDuration = useCallback((duration) => {
-    loopDurationRef.current = duration;
-    startTimeRef.current = Date.now();
-  }, []);
+    const previousDuration = getDuration();
+    const { nextDuration } = setLoopDuration(duration);
+    const ratio = previousDuration ? nextDuration / previousDuration : 1;
+    rescaleStrokes(ratio, nextDuration);
+  }, [getDuration, rescaleStrokes, setLoopDuration]);
 
   const setSymmetry = useCallback((symmetry) => {
     symmetryRef.current = symmetry;
+  }, []);
+
+  const setSpeed = useCallback((speed) => {
+    setLoopSpeed(speed);
+  }, [setLoopSpeed]);
+
+  const setPause = useCallback((value) => {
+    setLoopPause(value);
+  }, [setLoopPause]);
+
+  const setPingPong = useCallback((value) => {
+    setLoopPingPong(value);
+  }, [setLoopPingPong]);
+
+  const setPresence = useCallback((value) => {
+    presenceRef.current = Math.min(1, Math.max(0, value));
   }, []);
 
   const toggleGhost = useCallback((value) => {
@@ -413,12 +460,13 @@ export function useBubbleEngine() {
     buffer.width = exportSize;
     buffer.height = exportSize;
     const ctx = buffer.getContext('2d');
-    const duration = loopDurationRef.current;
+    const duration = getDuration();
+    const recordLength = (duration * (isPingPong() ? 2 : 1)) / getSpeed();
     const startTime = Date.now();
     let capture;
 
     const drawFrameForExport = () => {
-      const elapsed = (Date.now() - startTime) % duration;
+      const elapsed = mapElapsedToLoopTime(Date.now() - startTime);
       ctx.save();
       ctx.fillStyle = '#f1f5f9';
       ctx.fillRect(0, 0, buffer.width, buffer.height);
@@ -435,7 +483,7 @@ export function useBubbleEngine() {
     capture = setInterval(drawFrameForExport, 1000 / 30);
 
     try {
-      const blob = await recordVideo({ canvas: buffer, duration });
+      const blob = await recordVideo({ canvas: buffer, duration: recordLength });
       if (blob) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -449,19 +497,28 @@ export function useBubbleEngine() {
     } finally {
       if (capture) clearInterval(capture);
     }
-  }, [renderFrame]);
+  }, [getDuration, getSpeed, isPingPong, mapElapsedToLoopTime, renderFrame]);
 
   const getSessionData = useCallback(() => ({
     strokes: strokesRef.current,
-    duration: loopDurationRef.current,
-  }), []);
+    duration: getDuration(),
+    speed: getSpeed(),
+    pingPong: isPingPong(),
+    presence: presenceRef.current,
+    ghost: ghostRef.current,
+  }), [getDuration, getSpeed, isPingPong]);
 
   const loadSessionData = useCallback((session) => {
     if (!session) return;
     strokesRef.current = session.strokes || [];
-    loopDurationRef.current = session.duration || 10000;
-    startTimeRef.current = Date.now();
-  }, []);
+    presenceRef.current = typeof session.presence === 'number' ? session.presence : 0.8;
+    ghostRef.current = !!session.ghost;
+    setLoopDuration(session.duration || 10000);
+    setLoopSpeed(session.speed ?? 1);
+    setLoopPingPong(session.pingPong ?? false);
+    setLoopPause(false);
+    resetClock();
+  }, [resetClock, setLoopDuration, setLoopPause, setLoopPingPong, setLoopSpeed]);
 
   return {
     drawingRef,
@@ -471,11 +528,14 @@ export function useBubbleEngine() {
     setTool,
     setColor,
     setDuration,
+    setSpeed,
+    setPause,
+    setPingPong,
+    setPresence,
     setSymmetry,
     toggleGhost,
     toggleSessionMode,
     exportVideo: handleExport,
-    progress,
     setIntensity,
     setAudioFile,
     setDemoAudio,
