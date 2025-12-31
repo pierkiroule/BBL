@@ -445,7 +445,7 @@ export function useBubbleEngine() {
     if (drawCtxRef.current) drawCtxRef.current.clearRect(0, 0, size, size);
   }, []);
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async ({ skipDownload = false } = {}) => {
     if (typeof MediaRecorder === 'undefined') {
       window.alert("L'export vidéo n'est pas supporté sur ce navigateur.");
       return;
@@ -485,18 +485,22 @@ export function useBubbleEngine() {
     try {
       const blob = await recordVideo({ canvas: buffer, duration: recordLength });
       if (blob) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `bbl-loop-${Date.now()}.webm`;
-        a.click();
-        URL.revokeObjectURL(url);
+        if (!skipDownload) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `bbl-loop-${Date.now()}.webm`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        return blob;
       } else {
         window.alert("L'export vidéo a échoué. Réessayez avec un autre navigateur.");
       }
     } finally {
       if (capture) clearInterval(capture);
     }
+    return null;
   }, [getDuration, getSpeed, isPingPong, mapElapsedToLoopTime, renderFrame]);
 
   const getSessionData = useCallback(() => ({

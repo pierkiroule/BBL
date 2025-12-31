@@ -7,6 +7,7 @@ export default function Header({
   onSaveSession,
   onToggleSessionMode,
   isSessionMode,
+  onOpenGallery,
 }) {
   return (
     <header className="header-bar glass-panel">
@@ -27,6 +28,11 @@ export default function Header({
             <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         </button>
+        {onOpenGallery && (
+          <button onClick={onOpenGallery} className="button-secondary" aria-label="Ouvrir la galerie constellation">
+            Galerie
+          </button>
+        )}
         <button onClick={onSaveSession} className="button-primary" aria-label="Sauvegarder la session">
           Sauvegarder
         </button>
