@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { exportVideo as recordVideo } from './exportVideo.js';
 import { useLoopTime } from './useLoopTime.js';
+import { TOOL_RENDERERS, computeAlpha, ensureStrokeSeed, isStampTool, prepareStrokePoints } from './tools.js';
+import { isClosedShape } from '../utils/geometry.js';
+import { sanitizeText } from '../utils/text.js';
 
 function getPosition(canvas, event) {
   const rect = canvas.getBoundingClientRect();
@@ -15,54 +18,45 @@ function getPosition(canvas, event) {
   return { x, y };
 }
 
-function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res, displaySize, presence = 1) {
+function defaultSizeForTool(tool) {
+  switch (tool) {
+    case 'brush':
+    case 'watercolor':
+      return 14;
+    case 'ink':
+      return 9;
+    case 'particle-fill':
+      return 12;
+    case 'emoji-stamp':
+    case 'text':
+      return 16;
+    case 'image-stamp':
+      return 22;
+    case 'eraser':
+      return 32;
+    case 'soft-eraser':
+      return 28;
+    default:
+      return 4;
+  }
+}
+
+function drawStroke(ctx, stroke, timeLimit, symmetry, isGhost, res, displaySize, presence = 1, loopDuration = null) {
   if (!stroke?.points?.length) return;
   const size = displaySize || ctx.canvas.width;
   const cx = size / 2;
   const cy = size / 2;
-  const now = Date.now();
+  const opacity = computeAlpha({ isGhost, presence, opacity: stroke.opacity || 1 });
 
   for (let s = 0; s < symmetry; s += 1) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(((Math.PI * 2) / symmetry) * s);
     ctx.translate(-cx, -cy);
-    ctx.beginPath();
-    ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.size + (res.bass * 20);
-    const liveAlpha = Math.min(1, 0.2 + presence * 0.9);
-    const ghostAlpha = 0.04 + presence * 0.08;
-    ctx.globalAlpha = isGhost ? ghostAlpha : Math.min(1, liveAlpha * (0.8 + res.bass * 0.2));
-    ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
 
-    if (stroke.tool === 'brush') {
-      ctx.shadowBlur = stroke.size / 2 + res.treble * 25;
-      ctx.shadowColor = stroke.color;
-    } else {
-      ctx.shadowBlur = 0;
-    }
-
-    let first = true;
-    stroke.points.forEach((p, i) => {
-      if (p.t <= timeLimit) {
-        const mX = Math.sin(now * 0.005 + i * 0.15) * (res.mid * 12);
-        const mY = Math.cos(now * 0.005 + i * 0.15) * (res.mid * 12);
-        const px = p.x + mX + (Math.random() - 0.5) * (res.treble * 4);
-        const py = p.y + mY + (Math.random() - 0.5) * (res.treble * 4);
-        if (first) {
-          ctx.moveTo(px, py);
-          first = false;
-        } else {
-          const prev = stroke.points[i - 1];
-          if (Math.hypot(px - prev.x, py - prev.y) < size / 3) {
-            ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + px) / 2, (prev.y + py) / 2);
-          } else {
-            ctx.moveTo(px, py);
-          }
-        }
-      }
-    });
-    ctx.stroke();
+    const pts = prepareStrokePoints(stroke, timeLimit);
+    const renderer = TOOL_RENDERERS[stroke.tool] || TOOL_RENDERERS.pencil;
+    renderer(ctx, stroke, pts, { timeLimit, resonance: res, alpha: opacity, duration: loopDuration ?? displaySize, presence });
     ctx.restore();
   }
 }
@@ -79,6 +73,12 @@ export function useBubbleEngine() {
   const presenceRef = useRef(0.8);
   const toolRef = useRef('pencil');
   const colorRef = useRef('#1e293b');
+  const strokeSizeRef = useRef(12);
+  const strokeOpacityRef = useRef(1);
+  const emojiRef = useRef('✨');
+  const textDraftRef = useRef('');
+  const stampImageRef = useRef(null);
+  const stampOutlineRef = useRef(true);
   const isDrawingRef = useRef(false);
   const rafRef = useRef(null);
   const sessionModeRef = useRef(false);
@@ -159,22 +159,62 @@ export function useBubbleEngine() {
   }, []);
 
   const appendStroke = useCallback((stroke) => {
-    if (stroke?.points?.length > 1) {
+    if (stroke?.points?.length && (stroke.points.length > 1 || isStampTool(stroke.tool))) {
       strokesRef.current.push(stroke);
     }
+  }, []);
+
+  const finalizeStroke = useCallback((incomingStroke) => {
+    const stroke = incomingStroke || currentStrokeRef.current;
+    if (!stroke?.points?.length) return null;
+
+    if (stroke.tool === 'particle-fill' && isClosedShape(stroke.points, 12)) {
+      stroke.closedAt = stroke.points[stroke.points.length - 1].t;
+      stroke.polygon = stroke.points.slice();
+      const density = Math.max(12, Math.min(120, Math.floor(stroke.size * 4)));
+      const center = stroke.polygon.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+      center.x /= stroke.polygon.length;
+      center.y /= stroke.polygon.length;
+      const particles = [];
+      for (let i = 0; i < density; i += 1) {
+        particles.push({
+          cx: center.x + (Math.random() - 0.5) * stroke.size * 2,
+          cy: center.y + (Math.random() - 0.5) * stroke.size * 2,
+          orbit: Math.random() * stroke.size * 3 + stroke.size,
+          radius: Math.max(1.2, Math.random() * Math.max(3, stroke.size * 0.4)),
+          speed: 0.3 + Math.random() * 0.7,
+          phase: Math.random() * Math.PI * 2,
+          alpha: 0.35 + Math.random() * 0.4,
+        });
+      }
+      stroke.particles = particles;
+    }
+
+    if (stroke.tool === 'text') {
+      const placeholder = textDraftRef.current || '';
+      const value = sanitizeText(window.prompt('Texte :', placeholder));
+      if (value) {
+        stroke.text = value;
+        textDraftRef.current = value;
+      } else {
+        return null;
+      }
+    }
+    return stroke;
   }, []);
 
   const stopDrawing = useCallback(() => {
     if (isDrawingRef.current) {
       isDrawingRef.current = false;
-      appendStroke(currentStrokeRef.current);
+      const stroke = finalizeStroke();
+      appendStroke(stroke);
       currentStrokeRef.current = null;
       if (drawCtxRef.current) {
         const size = displaySizeRef.current || drawCtxRef.current.canvas.width;
         drawCtxRef.current.clearRect(0, 0, size, size);
       }
     }
-  }, [appendStroke]);
+  }, [appendStroke, finalizeStroke]);
 
   const handlePointerDown = useCallback(
     (event) => {
@@ -183,16 +223,31 @@ export function useBubbleEngine() {
       const pos = getPosition(drawingRef.current, event);
       if (!pos) return;
       ensureAudioElement();
-      isDrawingRef.current = true;
       const { time: currentTime } = getLoopState();
-      currentStrokeRef.current = {
-        tool: toolRef.current,
+      const tool = toolRef.current;
+      const baseSize = strokeSizeRef.current || defaultSizeForTool(tool);
+      const stroke = ensureStrokeSeed({
+        tool,
         color: colorRef.current,
-        size: toolRef.current === 'brush' ? 12 : toolRef.current === 'eraser' ? 32 : 3,
+        size: baseSize,
         points: [{ ...pos, t: currentTime }],
-      };
+        opacity: strokeOpacityRef.current || 1,
+        emoji: emojiRef.current,
+        text: textDraftRef.current,
+        image: stampImageRef.current,
+        outline: stampOutlineRef.current,
+        rotation: Math.random() * 0.4 - 0.2,
+      });
+      currentStrokeRef.current = stroke;
+      const isStamp = isStampTool(tool);
+      isDrawingRef.current = !isStamp;
+      if (isStamp) {
+        const ready = finalizeStroke(stroke);
+        appendStroke(ready);
+        currentStrokeRef.current = null;
+      }
     },
-    [ensureAudioElement, getLoopState]
+    [appendStroke, ensureAudioElement, finalizeStroke, getLoopState]
   );
 
   const handlePointerMove = useCallback(
@@ -214,13 +269,13 @@ export function useBubbleEngine() {
             points: [...stroke.points, { ...lastPoint, t: duration }],
           };
           appendStroke(completedStroke);
-          currentStrokeRef.current = {
+          currentStrokeRef.current = ensureStrokeSeed({
             ...stroke,
             points: [
               { ...lastPoint, t: 0 },
               { ...pos, t: currentTime },
             ],
-          };
+          });
         } else {
           currentStrokeRef.current?.points.push({ ...pos, t: currentTime });
         }
@@ -284,9 +339,9 @@ export function useBubbleEngine() {
       const size = sizeOverride || displaySizeRef.current || ctx.canvas.width;
       const duration = getDuration();
       ctx.clearRect(0, 0, size, size);
-      if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, duration, symmetryRef.current, true, res, size, presenceRef.current));
-      strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size, presenceRef.current));
-      if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size, presenceRef.current);
+      if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, duration, symmetryRef.current, true, res, size, presenceRef.current, duration));
+      strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size, presenceRef.current, duration));
+      if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size, presenceRef.current, duration);
     },
     [getDuration]
   );
@@ -329,10 +384,45 @@ export function useBubbleEngine() {
 
   const setTool = useCallback((tool) => {
     toolRef.current = tool;
+    strokeSizeRef.current = defaultSizeForTool(tool);
   }, []);
 
   const setColor = useCallback((color) => {
     colorRef.current = color;
+  }, []);
+
+  const setStrokeSize = useCallback((value) => {
+    const next = Number.isFinite(value) ? value : defaultSizeForTool(toolRef.current);
+    strokeSizeRef.current = Math.max(1, next);
+  }, []);
+
+  const setStrokeOpacity = useCallback((value) => {
+    if (!Number.isFinite(value)) return;
+    strokeOpacityRef.current = Math.min(1, Math.max(0.05, value));
+  }, []);
+
+  const setEmoji = useCallback((emoji) => {
+    if (emoji) emojiRef.current = emoji;
+  }, []);
+
+  const setTextDraft = useCallback((text) => {
+    textDraftRef.current = sanitizeText(text || '');
+  }, []);
+
+  const setStampOutline = useCallback((enabled) => {
+    stampOutlineRef.current = !!enabled;
+  }, []);
+
+  const setStampImage = useCallback((file) => {
+    if (!file) {
+      stampImageRef.current = null;
+      return;
+    }
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      stampImageRef.current = img;
+    };
   }, []);
 
   const rescaleStrokes = useCallback(
@@ -531,6 +621,12 @@ export function useBubbleEngine() {
     stop,
     setTool,
     setColor,
+    setStrokeSize,
+    setStrokeOpacity,
+    setEmoji,
+    setTextDraft,
+    setStampOutline,
+    setStampImage,
     setDuration,
     setSpeed,
     setPause,
