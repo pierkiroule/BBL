@@ -19,6 +19,7 @@ export default function App() {
   const closeLibrary = () => setLibraryOpen(false);
   const goHome = () => setView('home');
   const goGallery = () => setView('gallery');
+  const goAtelier = () => setView('atelier');
 
   const handleSessionLoaded = (session) => {
     setPendingSession(session);
@@ -48,12 +49,13 @@ export default function App() {
               onOpenLibrary={openLibrary}
               onSessionsChange={refreshSessions}
               sessionToLoad={pendingSession}
+              onOpenGallery={goGallery}
             />
           </div>
         )}
         {view === 'gallery' && (
           <div className="app-view active">
-            <GalleryView onBack={goHome} />
+            <GalleryView onNavigateHome={goHome} onNavigateAtelier={goAtelier} />
           </div>
         )}
       </div>

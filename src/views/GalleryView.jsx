@@ -11,7 +11,7 @@ function parseQuery(query) {
     .filter(Boolean);
 }
 
-export default function GalleryView({ onBack }) {
+export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
   const { loops } = useBubbleLoops();
   const [query, setQuery] = useState('');
   const [hovered, setHovered] = useState(null);
@@ -84,9 +84,16 @@ export default function GalleryView({ onBack }) {
           </div>
         </div>
         <div className="header-actions">
-          <button className="ghost pill" onClick={onBack}>
-            Retour
-          </button>
+          {onNavigateAtelier && (
+            <button className="ghost pill" onClick={onNavigateAtelier}>
+              Atelier
+            </button>
+          )}
+          {onNavigateHome && (
+            <button className="ghost pill" onClick={onNavigateHome}>
+              Accueil
+            </button>
+          )}
         </div>
       </header>
 

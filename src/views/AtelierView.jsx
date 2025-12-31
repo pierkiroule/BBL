@@ -5,7 +5,7 @@ import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
 import { useBubbleLoops } from '../hooks/useBubbleLoops.js';
 
-export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange }) {
+export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange, onOpenGallery }) {
   const {
     drawingRef,
     loopRef,
@@ -191,6 +191,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
         onSaveSession={handleSave}
         onToggleSessionMode={handleToggleSessionMode}
         isSessionMode={sessionMode}
+        onOpenGallery={onOpenGallery}
       />
       <main className="canvas-viewport">
         <div className="canvas-wrapper" id="canvas-outer">
