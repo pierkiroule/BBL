@@ -46,6 +46,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [isPlaying, setIsPlaying] = useState(false);
   const [intensity, setIntensity] = useState(0.5);
   const [useDemoAudio, setUseDemoAudio] = useState(false);
+  const [isImmersive, setIsImmersive] = useState(false);
 
   useEffect(() => {
     setTool(activeTool);
@@ -183,53 +184,82 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
 
   const sessionMeta = useMemo(() => sessionName, [sessionName]);
 
+  const enterImmersiveCanvas = () => setIsImmersive(true);
+  const exitImmersiveCanvas = () => setIsImmersive(false);
+
   return (
-    <section className="view-content" style={{ flex: 1 }}>
-      <Header
-        sessionName={sessionMeta}
-        onOpenLibrary={onOpenLibrary}
-        onSaveSession={handleSave}
-        onToggleSessionMode={handleToggleSessionMode}
-        isSessionMode={sessionMode}
-        onOpenGallery={onOpenGallery}
-      />
-      <main className="canvas-viewport">
-        <div className="canvas-wrapper" id="canvas-outer">
-          <canvas ref={loopRef} />
-          <canvas ref={drawingRef} />
+    <section className={`view-content atelier-view ${isImmersive ? 'immersive' : ''}`} style={{ flex: 1 }}>
+      {!isImmersive && (
+        <Header
+          sessionName={sessionMeta}
+          onOpenLibrary={onOpenLibrary}
+          onSaveSession={handleSave}
+          onToggleSessionMode={handleToggleSessionMode}
+          isSessionMode={sessionMode}
+          onOpenGallery={onOpenGallery}
+        />
+      )}
+
+      <div className="canvas-stage">
+        <div className="canvas-toolbar glass-panel">
+          <div className="canvas-hints">
+            <span className="badge">Geste libre</span>
+            <p className="muted">Pincer pour zoomer, glisser pour dessiner.</p>
+          </div>
+          <div className="canvas-toolbar-actions">
+            <button className="ghost" onClick={enterImmersiveCanvas} aria-pressed={isImmersive}>
+              Canvas seul
+            </button>
+          </div>
         </div>
-      </main>
-      <ControlPanel
-        color={color}
-        onColorChange={setColor}
-        duration={duration}
-        onDurationChange={setDuration}
-        speed={speed}
-        onSpeedChange={setSpeed}
-        isPaused={isPaused}
-        onPauseToggle={() => setIsPaused((v) => !v)}
-        pingPong={pingPong}
-        onPingPongToggle={() => setPingPong((v) => !v)}
-        presence={presence}
-        onPresenceChange={setPresence}
-        onGhostToggle={() => setGhostMode((v) => !v)}
-        ghostMode={ghostMode}
-        onSymmetryToggle={() => setSymmetry((v) => (v === 1 ? 6 : 1))}
-        symmetry={symmetry}
-        onClear={handleClear}
-        onExport={handleExport}
-        onToolChange={setActiveTool}
-        activeTool={activeTool}
-        onAudioFile={handleLoadAudio}
-        onToggleAudio={handleToggleAudio}
-        isPlaying={isPlaying}
-        intensity={intensity}
-        onIntensityChange={setIntensity}
-        onToggleSessionMode={handleToggleSessionMode}
-        isSessionMode={sessionMode}
-        onToggleDemoAudio={handleToggleDemoAudio}
-        isDemoAudioEnabled={useDemoAudio}
-      />
+
+        <main className="canvas-viewport">
+          <div className="canvas-wrapper" id="canvas-outer">
+            <canvas ref={loopRef} />
+            <canvas ref={drawingRef} />
+          </div>
+        </main>
+      </div>
+
+      {!isImmersive && (
+        <ControlPanel
+          color={color}
+          onColorChange={setColor}
+          duration={duration}
+          onDurationChange={setDuration}
+          speed={speed}
+          onSpeedChange={setSpeed}
+          isPaused={isPaused}
+          onPauseToggle={() => setIsPaused((v) => !v)}
+          pingPong={pingPong}
+          onPingPongToggle={() => setPingPong((v) => !v)}
+          presence={presence}
+          onPresenceChange={setPresence}
+          onGhostToggle={() => setGhostMode((v) => !v)}
+          ghostMode={ghostMode}
+          onSymmetryToggle={() => setSymmetry((v) => (v === 1 ? 6 : 1))}
+          symmetry={symmetry}
+          onClear={handleClear}
+          onExport={handleExport}
+          onToolChange={setActiveTool}
+          activeTool={activeTool}
+          onAudioFile={handleLoadAudio}
+          onToggleAudio={handleToggleAudio}
+          isPlaying={isPlaying}
+          intensity={intensity}
+          onIntensityChange={setIntensity}
+          onToggleSessionMode={handleToggleSessionMode}
+          isSessionMode={sessionMode}
+          onToggleDemoAudio={handleToggleDemoAudio}
+          isDemoAudioEnabled={useDemoAudio}
+        />
+      )}
+
+      {isImmersive && (
+        <button className="floating-menu-button" onClick={exitImmersiveCanvas} aria-label="Réafficher les menus de l'atelier">
+          Menus
+        </button>
+      )}
     </section>
   );
 }
