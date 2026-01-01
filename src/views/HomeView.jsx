@@ -34,18 +34,18 @@ export default function HomeView({ onStart, onOpenLibrary, onOpenGallery }) {
   };
 
   return (
-    <section className="view-content centered" style={{ padding: '2rem' }}>
+    <section className="view-content centered home-section">
       <div className="home-stack">
-        <div className="centered" style={{ flexDirection: 'column', gap: '1.5rem', textAlign: 'center' }}>
-          <div className="">
-            <BubbleLoopLogo size={170} />
+        <div className="centered home-hero">
+          <div className="home-logo-wrap">
+            <BubbleLoopLogo size={170} className="home-logo" />
             <div className="version-pill">v1</div>
           </div>
           <div>
-            <h1 style={{ fontSize: '2.4rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic', color: 'var(--slate-400)' }}>
-              #BBL <span style={{ color: 'var(--primary)' }}>BubbleLoop</span>
+            <h1 className="home-title">
+              #BBL <span className="home-title-highlight">BubbleLoop</span>
             </h1>
-            <p style={{ color: 'var(--slate-500)', maxWidth: '400px', margin: '0.75rem auto 0', lineHeight: 1.5 }}>
+            <p className="home-subtitle">
               Dessinez en harmonie. Vos traits s'animent en boucle au rythme de la musique.
             </p>
           </div>
