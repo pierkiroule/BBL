@@ -283,8 +283,8 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     [sessionName]
   );
 
-  const handleZoomIn = () => setZoom((value) => Math.min(3, Number((value + 0.15).toFixed(2))));
-  const handleZoomOut = () => setZoom((value) => Math.max(0.5, Number((value - 0.15).toFixed(2))));
+  const handleZoomIn = () => setZoom((value) => Math.min(6, Number((value + 0.15).toFixed(2))));
+  const handleZoomOut = () => setZoom((value) => Math.max(0.2, Number((value - 0.15).toFixed(2))));
   const handleZoomReset = () => setZoom(1);
 
   const enterImmersiveCanvas = useCallback(() => setIsImmersive(true), []);
@@ -353,15 +353,15 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
           <div className="canvas-toolbar glass-panel">
             <div className="canvas-hints">
               <span className="badge">Geste libre</span>
-              <p className="muted">Utilisez les boutons de zoom, glissez pour dessiner.</p>
+              <p className="muted">Zoom aux boutons, espace + glisser (ou 2 doigts) pour déplacer la caméra.</p>
             </div>
             <div className="canvas-toolbar-actions">
               <div className="zoom-controls" role="group" aria-label="Zoom sur le canevas">
-                <button type="button" className="ghost" onClick={handleZoomOut} aria-label="Zoom arrière" disabled={zoom <= 0.55}>
+                <button type="button" className="ghost" onClick={handleZoomOut} aria-label="Zoom arrière" disabled={zoom <= 0.21}>
                   −
                 </button>
                 <span className="zoom-level" aria-live="polite">{Math.round(zoom * 100)}%</span>
-                <button type="button" className="ghost" onClick={handleZoomIn} aria-label="Zoom avant" disabled={zoom >= 2.95}>
+                <button type="button" className="ghost" onClick={handleZoomIn} aria-label="Zoom avant" disabled={zoom >= 5.95}>
                   +
                 </button>
                 <button type="button" className="ghost subtle" onClick={handleZoomReset} aria-label="Réinitialiser le zoom">
@@ -377,7 +377,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
        <main className="canvas-viewport">
 
   <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
-    <div className="canvas-clip" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+    <div className="canvas-clip">
       <canvas ref={loopRef} />
       <canvas ref={drawingRef} />
     </div>
