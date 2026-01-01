@@ -170,8 +170,8 @@ button {
 .grid-icons {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-  margin: 3rem 0;
+  gap: 1.25rem;
+  margin: 2.25rem 0;
 }
 
 .grid-item {
@@ -903,6 +903,46 @@ input[type="range"] { accent-color: var(--primary); }
   color: var(--slate-500);
   line-height: 1.5;
 }
+
+.home-section {
+  padding: clamp(1.5rem, 2vw + 1rem, 2rem);
+}
+
+.home-hero {
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: center;
+  width: 100%;
+}
+
+.home-logo-wrap {
+  position: relative;
+}
+
+.home-logo {
+  width: clamp(120px, 22vw, 170px);
+  height: clamp(120px, 22vw, 170px);
+}
+
+.home-title {
+  font-size: clamp(2rem, 5vw + 0.4rem, 2.4rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic;
+  color: var(--slate-400);
+}
+
+.home-title-highlight {
+  color: var(--primary);
+}
+
+.home-subtitle {
+  color: var(--slate-500);
+  max-width: 400px;
+  margin: 0.75rem auto 0;
+  line-height: 1.5;
+}
+
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .home-stack {
@@ -1375,8 +1415,22 @@ input[type="range"] { accent-color: var(--primary); }
 }
 
 @media (max-width: 640px) {
+  .home-section {
+    padding: 1rem 0.9rem 1.35rem;
+  }
+
   .home-stack {
     gap: 1.25rem;
+  }
+
+  .home-hero {
+    gap: 1.25rem;
+  }
+
+  .grid-icons {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.9rem;
+    margin: 1.5rem 0 0.5rem;
   }
 
   .concept-card,
