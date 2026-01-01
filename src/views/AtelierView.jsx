@@ -7,6 +7,7 @@ import OrbitingLoopIndicator from '../components/OrbitingLoopIndicator.jsx';
 import SaveSessionModal from '../components/SaveSessionModal.jsx';
 import ExportBubbleLoopModal from '../components/ExportBubbleLoopModal.jsx';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
+import { TOOL_COLORS, isPresetColor } from '../utils/palette.js';
 
 function defaultSizeForTool(tool) {
   switch (tool) {
@@ -15,8 +16,6 @@ function defaultSizeForTool(tool) {
       return 14;
     case 'ink':
       return 9;
-    case 'particle-fill':
-      return 12;
     case 'emoji-stamp':
     case 'text':
       return 16;
@@ -94,7 +93,6 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     { id: 'brush', icon: '🖌️' },
     { id: 'watercolor', icon: '💧' },
     { id: 'ink', icon: '🖋️' },
-    { id: 'particle-fill', icon: '✨' },
     { id: 'emoji-stamp', icon: '😊' },
     { id: 'text', icon: '🔤' },
     { id: 'image-stamp', icon: '🖼️' },
@@ -374,37 +372,82 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
             </div>
           </div>
 
-       <main className="canvas-viewport">
+          <main className="canvas-viewport">
+            <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
+              <div className="canvas-clip">
+                <canvas ref={loopRef} />
+                <canvas ref={drawingRef} />
+              </div>
 
-  <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
-    <div className="canvas-clip">
-      <canvas ref={loopRef} />
-      <canvas ref={drawingRef} />
-    </div>
+              <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
+            </div>
 
-    <OrbitingLoopIndicator
-      duration={duration}
-      speed={speed}
-      pingPong={pingPong}
-      paused={isPaused}
-    />
-  </div>
+            <div className="bubble-tools">
+              <div className="bubble-tool-group">
+                {ORBIT_TOOLS.map((tool) => (
+                  <button
+                    key={tool.id}
+                    className={`bubble-tool ${activeTool === tool.id ? 'active' : ''}`}
+                    onClick={() => setActiveTool(tool.id)}
+                    aria-label={tool.id}
+                  >
+                    {tool.icon}
+                  </button>
+                ))}
+              </div>
 
-  {/* ✅ ICI, hors du canvas */}
-  <div className="bubble-tools">
-    {ORBIT_TOOLS.map(tool => (
-      <button
-        key={tool.id}
-        className={`bubble-tool ${activeTool === tool.id ? 'active' : ''}`}
-        onClick={() => setActiveTool(tool.id)}
-        aria-label={tool.id}
-      >
-        {tool.icon}
-      </button>
-    ))}
-  </div>
+              <div className="bubble-tool-controls">
+                <div className="control-row">
+                  <span className="pill subtle">Couleurs</span>
+                  <div className="color-palette">
+                    {TOOL_COLORS.map((swatch) => (
+                      <button
+                        type="button"
+                        key={swatch}
+                        className={`color-dot ${color === swatch ? 'active' : ''}`}
+                        style={{ backgroundColor: swatch }}
+                        onClick={() => setColor(swatch)}
+                        aria-label={`Choisir ${swatch}`}
+                      />
+                    ))}
+                    <label className={`color-dot custom ${!isPresetColor(color) ? 'active' : ''}`} aria-label="Choisir une couleur personnalisée">
+                      <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+                      <span>+</span>
+                    </label>
+                  </div>
+                </div>
 
-</main>
+                <div className="control-row">
+                  <div className="bubble-mini-slider">
+                    <span className="pill subtle">Taille</span>
+                    <input
+                      type="range"
+                      min="3"
+                      max="64"
+                      step="1"
+                      value={strokeSize}
+                      onChange={(e) => setStrokeSize(Number(e.target.value))}
+                      aria-label="Taille du tracé"
+                    />
+                    <span className="pill strong">{Math.round(strokeSize)}px</span>
+                  </div>
+                  <div className="bubble-mini-slider">
+                    <span className="pill subtle">Opacité</span>
+                    <input
+                      type="range"
+                      min="0.05"
+                      max="1"
+                      step="0.05"
+                      value={strokeOpacity}
+                      onChange={(e) => setStrokeOpacity(Number(e.target.value))}
+                      aria-label="Opacité du tracé"
+                    />
+                    <span className="pill strong">{Math.round(strokeOpacity * 100)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
 
         {!isImmersive && (

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { TOOL_COLORS, isPresetColor } from '../utils/palette.js';
 
 function ToolButton({ id, label, icon, active, onClick }) {
   return (
@@ -88,18 +89,6 @@ export default function ControlPanel({
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path d="M12 3c2 2 5 4 5 7.5 0 2.5-1.5 5.5-5 7.5-3.5-2-5-5-5-7.5C7 7 10 5 12 3Z" />
             <path d="M9 11c1 .5 2 .5 3 0" />
-          </svg>
-        ),
-      },
-      {
-        id: 'particle-fill',
-        label: 'Nuage',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="8" cy="8" r="2" />
-            <circle cx="16" cy="10" r="2" />
-            <circle cx="12" cy="15" r="2" />
-            <path d="M6 18c6 3 12 0 12-4.5S12 7 8 9" />
           </svg>
         ),
       },
@@ -501,9 +490,27 @@ export default function ControlPanel({
             />
           ))}
         </div>
-        <div className="color-swatch">
-          <input type="color" value={color} onChange={(e) => onColorChange(e.target.value)} aria-label="Couleur" />
-          <div className="preview" style={{ backgroundColor: color }} />
+        <div className="color-picker">
+          <div className="color-picker-header">
+            <span className="pill subtle">Couleur</span>
+            {!isPresetColor(color) && <span className="pill strong">Personnalisée</span>}
+          </div>
+          <div className="color-palette">
+            {TOOL_COLORS.map((swatch) => (
+              <button
+                type="button"
+                key={swatch}
+                className={`color-dot ${color === swatch ? 'active' : ''}`}
+                style={{ backgroundColor: swatch }}
+                onClick={() => onColorChange(swatch)}
+                aria-label={`Choisir ${swatch}`}
+              />
+            ))}
+            <label className={`color-dot custom ${!isPresetColor(color) ? 'active' : ''}`} aria-label="Choisir une couleur personnalisée">
+              <input type="color" value={color} onChange={(e) => onColorChange(e.target.value)} />
+              <span>+</span>
+            </label>
+          </div>
         </div>
       </div>
 

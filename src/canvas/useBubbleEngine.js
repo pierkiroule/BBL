@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { exportVideo as recordVideo } from './exportVideo.js';
 import { useLoopTime } from './useLoopTime.js';
 import { TOOL_RENDERERS, computeAlpha, ensureStrokeSeed, isStampTool, prepareStrokePoints } from './tools.js';
-import { isClosedShape } from '../utils/geometry.js';
 import { sanitizeText } from '../utils/text.js';
 
 function clampZoom(value) {
@@ -35,8 +34,6 @@ function defaultSizeForTool(tool) {
       return 14;
     case 'ink':
       return 9;
-    case 'particle-fill':
-      return 12;
     case 'emoji-stamp':
     case 'text':
       return 16;
@@ -183,28 +180,6 @@ export function useBubbleEngine() {
   const finalizeStroke = useCallback((incomingStroke) => {
     const stroke = incomingStroke || currentStrokeRef.current;
     if (!stroke?.points?.length) return null;
-
-    if (stroke.tool === 'particle-fill' && isClosedShape(stroke.points, 12)) {
-      stroke.closedAt = stroke.points[stroke.points.length - 1].t;
-      stroke.polygon = stroke.points.slice();
-      const density = Math.max(12, Math.min(120, Math.floor(stroke.size * 4)));
-      const center = stroke.polygon.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
-      center.x /= stroke.polygon.length;
-      center.y /= stroke.polygon.length;
-      const particles = [];
-      for (let i = 0; i < density; i += 1) {
-        particles.push({
-          cx: center.x + (Math.random() - 0.5) * stroke.size * 2,
-          cy: center.y + (Math.random() - 0.5) * stroke.size * 2,
-          orbit: Math.random() * stroke.size * 3 + stroke.size,
-          radius: Math.max(1.2, Math.random() * Math.max(3, stroke.size * 0.4)),
-          speed: 0.3 + Math.random() * 0.7,
-          phase: Math.random() * Math.PI * 2,
-          alpha: 0.35 + Math.random() * 0.4,
-        });
-      }
-      stroke.particles = particles;
-    }
 
     if (stroke.tool === 'text') {
       const placeholder = textDraftRef.current || '';

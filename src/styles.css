@@ -673,16 +673,48 @@ canvas {
   flex-wrap: wrap;
 }
 
-.color-swatch {
-  position: relative;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  border: 2px solid white;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+.color-picker {
+  min-width: 260px;
 }
 
-.color-swatch input[type="color"] {
+.color-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.color-palette {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.color-dot {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.color-dot.active {
+  border-color: var(--primary);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.14);
+}
+
+.color-dot.custom {
+  position: relative;
+  border-style: dashed;
+  display: grid;
+  place-items: center;
+  color: var(--slate-500);
+  background: white;
+}
+
+.color-dot.custom input[type="color"] {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -691,10 +723,8 @@ canvas {
   cursor: pointer;
 }
 
-.color-swatch .preview {
-  width: 100%;
-  height: 100%;
-  border-radius: 0.75rem;
+.color-dot.custom span {
+  font-weight: 800;
 }
 
 .badge {
@@ -1896,9 +1926,10 @@ input[type="range"] { accent-color: var(--primary); }
 .bubble-tools {
   margin-top: 1rem;
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   justify-content: center;
-  flex-wrap: wrap;
+  align-items: center;
   pointer-events: auto;
 }
 
@@ -1915,8 +1946,50 @@ input[type="range"] { accent-color: var(--primary); }
   justify-content: center;
 }
 
+.bubble-tool-group {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .bubble-tool.active {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+.bubble-tool-controls {
+  width: min(620px, 100%);
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  padding: 0.9rem 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.bubble-tool-controls .control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bubble-mini-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+.bubble-mini-slider input[type="range"] {
+  flex: 1;
+}
+
+.bubble-tool-controls .pill.strong {
+  font-weight: 800;
 }
