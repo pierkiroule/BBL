@@ -6,8 +6,6 @@ export default function Header({
   sessionName,
   onOpenLibrary,
   onSaveSession,
-  onToggleSessionMode,
-  isSessionMode,
   onNavigateHome,
   onNavigateAtelier,
   onNavigateGallery,
@@ -100,15 +98,6 @@ export default function Header({
         {onSaveSession && (
           <button onClick={handleAction(onSaveSession)} className="button-primary" aria-label="Sauvegarder la session">
             Sauvegarder
-          </button>
-        )}
-        {onToggleSessionMode && (
-          <button
-            onClick={handleAction(onToggleSessionMode)}
-            className={`button-secondary ${isSessionMode ? 'active' : ''}`}
-            aria-pressed={isSessionMode}
-          >
-            Séance
           </button>
         )}
       </div>

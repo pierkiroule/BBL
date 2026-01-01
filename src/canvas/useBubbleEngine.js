@@ -88,7 +88,6 @@ export function useBubbleEngine() {
   const stampOutlineRef = useRef(true);
   const isDrawingRef = useRef(false);
   const rafRef = useRef(null);
-  const sessionModeRef = useRef(false);
   const sensitivityRef = useRef(0.5);
   const loopTime = useLoopTime(10000);
   const {
@@ -530,12 +529,6 @@ export function useBubbleEngine() {
     ghostRef.current = typeof value === 'boolean' ? value : !ghostRef.current;
   }, []);
 
-  const toggleSessionMode = useCallback((value) => {
-    const next = typeof value === 'boolean' ? value : !sessionModeRef.current;
-    sessionModeRef.current = next;
-    if (next) symmetryRef.current = 1;
-  }, []);
-
   const setIntensity = useCallback((value) => {
     sensitivityRef.current = value;
   }, []);
@@ -754,7 +747,6 @@ export function useBubbleEngine() {
     setPresence,
     setSymmetry,
     toggleGhost,
-    toggleSessionMode,
     exportVideo: handleExport,
     setIntensity,
     setZoom,

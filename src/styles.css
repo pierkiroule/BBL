@@ -1959,6 +1959,13 @@ input[type="range"] { accent-color: var(--primary); }
   border-color: var(--primary);
 }
 
+.bubble-hint {
+  margin: 0;
+  color: var(--slate-500);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
 .bubble-tool-controls {
   width: min(620px, 100%);
   background: white;
@@ -1992,4 +1999,49 @@ input[type="range"] { accent-color: var(--primary); }
 
 .bubble-tool-controls .pill.strong {
   font-weight: 800;
+}
+
+.tool-context-menu {
+  position: fixed;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid var(--slate-200);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  padding: 1rem;
+  z-index: 220;
+  width: min(420px, calc(100% - 2rem));
+}
+
+.tool-context-menu .menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.4rem;
+}
+
+.tool-context-menu .menu-section {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.tool-context-menu .menu-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tool-context-menu .emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.tool-context-menu .emoji-grid button {
+  width: 100%;
+  padding: 0.55rem 0;
+  font-size: 1.1rem;
 }
