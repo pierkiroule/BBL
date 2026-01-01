@@ -1,6 +1,8 @@
 :root {
   --primary: #6366f1;
   --primary-dark: #4338ca;
+  --focus-ring: #c7d2fe;
+  --focus-glow: rgba(99, 102, 241, 0.25);
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
   --slate-200: #e2e8f0;
@@ -32,6 +34,17 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px var(--focus-glow);
 }
 
 .app-shell {
@@ -252,8 +265,8 @@ button {
   display: none;
   background: white;
   border: 1px solid var(--slate-200);
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border-radius: 0.9rem;
   align-items: center;
   justify-content: center;
@@ -791,21 +804,27 @@ canvas {
   background: white;
   border: 1px solid var(--slate-200);
   border-radius: 1rem;
-  padding: 0.7rem 0.9rem;
+  padding: 0.8rem 1rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.68rem;
   color: var(--slate-600);
   transition: all 0.15s ease;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 48px;
+  min-width: 48px;
 }
 
 .ghost.active {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+.ghost:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px var(--focus-glow);
 }
 
 .danger-outline {
@@ -843,8 +862,28 @@ canvas {
   border-radius: 0.9rem;
   background: white;
   border: 1px solid var(--slate-200);
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.small-button:focus-visible,
+.button-primary:focus-visible,
+.button-secondary:focus-visible,
+.footer-actions .ghost:focus-visible,
+.footer-actions .export:focus-visible,
+.actions-toggle:focus-visible,
+.carousel-btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px var(--focus-glow);
+}
+
+.small-button:active,
+.button-primary:active,
+.actions-toggle:active,
+.carousel-btn:active {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85), 0 10px 24px var(--focus-glow);
 }
 
 .hidden { display: none; }
