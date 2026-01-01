@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 function ToolButton({ id, label, icon, active, onClick }) {
   return (
@@ -48,6 +48,8 @@ export default function ControlPanel({
   stampOutline,
   onStampOutlineChange,
 }) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [panelStates, setPanelStates] = useState({ trace: true, audio: true, tool: true });
   const tools = useMemo(
     () => [
       {
@@ -157,6 +159,24 @@ export default function ControlPanel({
 
   const [timePanelOpen, setTimePanelOpen] = useState(true);
 
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setPanelStates({ trace: false, audio: false, tool: false });
+      setTimePanelOpen(true);
+      return;
+    }
+    setPanelStates({ trace: true, audio: true, tool: true });
+    setTimePanelOpen(true);
+  }, [isMobile]);
+
   const speedMood = useMemo(() => {
     if (speed < 0.55) return 'Respiré';
     if (speed < 1) return 'Calme';
@@ -196,8 +216,14 @@ export default function ControlPanel({
     setTimePanelOpen(true);
   };
 
+  const togglePanel = (panel) => {
+    setPanelStates((prev) => ({ ...prev, [panel]: !prev[panel] }));
+  };
+
+  const isPanelOpen = (panel) => (!isMobile ? true : panelStates[panel]);
+
   return (
-    <footer className="control-panel glass-panel">
+    <footer className={`control-panel glass-panel ${isMobile ? 'mobile' : ''}`}>
       <div className={`panel-section time-panel ${timePanelOpen ? 'expanded' : 'collapsed'}`}>
         <div className="section-head">
           <div>
@@ -277,145 +303,189 @@ export default function ControlPanel({
         )}
       </div>
 
-      <div className="panel-section trace-panel">
+      <div className={`panel-section trace-panel ${isPanelOpen('trace') ? 'expanded' : 'collapsed'}`}>
         <div className="section-head">
           <div>
             <span className="badge">Trace</span>
             <p className="section-title">Empreinte du geste</p>
           </div>
-        </div>
-        <div className="control-card">
-          <div className="slider-row">
-            <span className="pill">Présence</span>
-            <span className="pill subtle">{presenceMood}</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={presence}
-            onChange={(e) => onPresenceChange(Number(e.target.value))}
-            aria-label="Présence des traces"
-          />
-          <div className="slider-labels">
-            <small>S’estompe</small>
-            <small>Reste</small>
-          </div>
-        </div>
-        <div className="switch-grid">
-          <button className={`ghost ${ghostMode ? 'active' : ''}`} onClick={onGhostToggle} aria-pressed={ghostMode}>
-            Fantôme
-          </button>
-          {!isSessionMode && (
-            <button className={`ghost ${symmetry > 1 ? 'active' : ''}`} onClick={onSymmetryToggle} aria-pressed={symmetry > 1}>
-              {symmetry > 1 ? `Symétrie x${symmetry}` : 'Symétrie'}
+          {isMobile && (
+            <button
+              type="button"
+              className="ghost pill"
+              onClick={() => togglePanel('trace')}
+              aria-pressed={isPanelOpen('trace')}
+              aria-expanded={isPanelOpen('trace')}
+              aria-controls="trace-panel-body"
+            >
+              {isPanelOpen('trace') ? 'Fermer' : 'Ouvrir'}
             </button>
           )}
+        </div>
+        <div className={`panel-body ${isPanelOpen('trace') ? 'open' : ''}`} id="trace-panel-body">
+          <div className="control-card">
+            <div className="slider-row">
+              <span className="pill">Présence</span>
+              <span className="pill subtle">{presenceMood}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={presence}
+              onChange={(e) => onPresenceChange(Number(e.target.value))}
+              aria-label="Présence des traces"
+            />
+            <div className="slider-labels">
+              <small>S’estompe</small>
+              <small>Reste</small>
+            </div>
+            <div className="switch-grid">
+              <button className={`ghost ${ghostMode ? 'active' : ''}`} onClick={onGhostToggle} aria-pressed={ghostMode}>
+                Fantôme
+              </button>
+              {!isSessionMode && (
+                <button className={`ghost ${symmetry > 1 ? 'active' : ''}`} onClick={onSymmetryToggle} aria-pressed={symmetry > 1}>
+                  {symmetry > 1 ? `Symétrie x${symmetry}` : 'Symétrie'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {!isSessionMode && (
-        <div className="panel-section audio-panel">
+        <div className={`panel-section audio-panel ${isPanelOpen('audio') ? 'expanded' : 'collapsed'}`}>
           <div className="section-head">
             <span className="badge">Ambiance</span>
             <span className="pill subtle">{intensityMood}</span>
+            {isMobile && (
+              <button
+                type="button"
+                className="ghost pill"
+                onClick={() => togglePanel('audio')}
+                aria-pressed={isPanelOpen('audio')}
+                aria-expanded={isPanelOpen('audio')}
+                aria-controls="audio-panel-body"
+              >
+                {isPanelOpen('audio') ? 'Fermer' : 'Ouvrir'}
+              </button>
+            )}
           </div>
-          <div className="slider-row audio-row">
-            <button className={`ghost ${isDemoAudioEnabled ? 'active' : ''}`} onClick={onToggleDemoAudio} style={{ minWidth: '95px' }}>
-              {isDemoAudioEnabled ? 'Démo audio' : 'Audio perso'}
-            </button>
-            <label className="small-button" style={{ cursor: 'pointer' }}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                <path d="M9 19V5l12-2v14M12 15V3" />
-              </svg>
-              <input type="file" accept="audio/*" onChange={(e) => e.target.files[0] && onAudioFile(e.target.files[0])} className="hidden" />
-            </label>
-            <button className="button-primary" onClick={onToggleAudio} style={{ minWidth: '80px' }}>
-              {isPlaying ? 'Pause' : 'Lecture'}
-            </button>
-            <div className="range-input">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={intensity}
-                onChange={(e) => onIntensityChange(Number(e.target.value))}
-                aria-label="Sensibilité aux vibrations"
-              />
+          <div className={`panel-body ${isPanelOpen('audio') ? 'open' : ''}`} id="audio-panel-body">
+            <div className="slider-row audio-row">
+              <button className={`ghost ${isDemoAudioEnabled ? 'active' : ''}`} onClick={onToggleDemoAudio} style={{ minWidth: '95px' }}>
+                {isDemoAudioEnabled ? 'Démo audio' : 'Audio perso'}
+              </button>
+              <label className="small-button" style={{ cursor: 'pointer' }}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                  <path d="M9 19V5l12-2v14M12 15V3" />
+                </svg>
+                <input type="file" accept="audio/*" onChange={(e) => e.target.files[0] && onAudioFile(e.target.files[0])} className="hidden" />
+              </label>
+              <button className="button-primary" onClick={onToggleAudio} style={{ minWidth: '80px' }}>
+                {isPlaying ? 'Pause' : 'Lecture'}
+              </button>
+              <div className="range-input">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={intensity}
+                  onChange={(e) => onIntensityChange(Number(e.target.value))}
+                  aria-label="Sensibilité aux vibrations"
+                />
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="panel-section">
+      <div className={`panel-section ${isPanelOpen('tool') ? 'expanded' : 'collapsed'}`}>
         <div className="section-head">
-          <span className="badge">Outil</span>
-          <p className="section-title">Réglages rapides</p>
-        </div>
-        <div className="control-card">
-          <div className="slider-row">
-            <span className="pill">Taille</span>
-            <span className="pill strong">{Math.round(strokeSize)}px</span>
+          <div>
+            <span className="badge">Outil</span>
+            <p className="section-title">Réglages rapides</p>
           </div>
-          <input
-            type="range"
-            min="3"
-            max="64"
-            step="1"
-            value={strokeSize}
-            onChange={(e) => onStrokeSizeChange(Number(e.target.value))}
-            aria-label="Taille du tracé"
-          />
+          {isMobile && (
+            <button
+              type="button"
+              className="ghost pill"
+              onClick={() => togglePanel('tool')}
+              aria-pressed={isPanelOpen('tool')}
+              aria-expanded={isPanelOpen('tool')}
+              aria-controls="tool-panel-body"
+            >
+              {isPanelOpen('tool') ? 'Fermer' : 'Ouvrir'}
+            </button>
+          )}
         </div>
-        <div className="control-card">
-          <div className="slider-row">
-            <span className="pill">Opacité</span>
-            <span className="pill subtle">{Math.round(strokeOpacity * 100)}%</span>
-          </div>
-          <input
-            type="range"
-            min="0.05"
-            max="1"
-            step="0.05"
-            value={strokeOpacity}
-            onChange={(e) => onStrokeOpacityChange(Number(e.target.value))}
-            aria-label="Opacité du tracé"
-          />
-        </div>
-        {activeTool === 'emoji-stamp' && (
+        <div className={`panel-body ${isPanelOpen('tool') ? 'open' : ''}`} id="tool-panel-body">
           <div className="control-card">
             <div className="slider-row">
-              <span className="pill">Emoji</span>
+              <span className="pill">Taille</span>
+              <span className="pill strong">{Math.round(strokeSize)}px</span>
             </div>
-            <div className="switch-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-              {['✨', '🌿', '🔥', '🌊', '💫', '🎈', '🫧', '⭐️'].map((item) => (
-                <button key={item} className={`ghost ${emoji === item ? 'active' : ''}`} onClick={() => onEmojiChange(item)}>
-                  {item}
+            <input
+              type="range"
+              min="3"
+              max="64"
+              step="1"
+              value={strokeSize}
+              onChange={(e) => onStrokeSizeChange(Number(e.target.value))}
+              aria-label="Taille du tracé"
+            />
+          </div>
+          <div className="control-card">
+            <div className="slider-row">
+              <span className="pill">Opacité</span>
+              <span className="pill subtle">{Math.round(strokeOpacity * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0.05"
+              max="1"
+              step="0.05"
+              value={strokeOpacity}
+              onChange={(e) => onStrokeOpacityChange(Number(e.target.value))}
+              aria-label="Opacité du tracé"
+            />
+          </div>
+          {activeTool === 'emoji-stamp' && (
+            <div className="control-card">
+              <div className="slider-row">
+                <span className="pill">Emoji</span>
+              </div>
+              <div className="switch-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                {['✨', '🌿', '🔥', '🌊', '💫', '🎈', '🫧', '⭐️'].map((item) => (
+                  <button key={item} className={`ghost ${emoji === item ? 'active' : ''}`} onClick={() => onEmojiChange(item)}>
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {activeTool === 'image-stamp' && (
+            <div className="control-card">
+              <div className="slider-row">
+                <span className="pill">Pastille</span>
+                <button className={`ghost ${stampOutline ? 'active' : ''}`} onClick={() => onStampOutlineChange(!stampOutline)} aria-pressed={stampOutline}>
+                  Contour
                 </button>
-              ))}
+              </div>
+              <label className="small-button" style={{ cursor: 'pointer', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" />
+                  <path d="m7 15 3-3 2 2 3-4 2 3" />
+                </svg>
+                Importer
+                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onStampImage(e.target.files[0])} className="hidden" />
+              </label>
             </div>
-          </div>
-        )}
-        {activeTool === 'image-stamp' && (
-          <div className="control-card">
-            <div className="slider-row">
-              <span className="pill">Pastille</span>
-              <button className={`ghost ${stampOutline ? 'active' : ''}`} onClick={() => onStampOutlineChange(!stampOutline)} aria-pressed={stampOutline}>
-                Contour
-              </button>
-            </div>
-            <label className="small-button" style={{ cursor: 'pointer', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" />
-                <path d="m7 15 3-3 2 2 3-4 2 3" />
-              </svg>
-              Importer
-              <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onStampImage(e.target.files[0])} className="hidden" />
-            </label>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="tool-row">
