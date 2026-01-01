@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import BubbleLoopLogo from './BubbleLoopLogo.jsx';
 
 export default function Header({
@@ -13,6 +13,8 @@ export default function Header({
   onNavigateGallery,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsMenuId = useId();
 
   const navItems = useMemo(
     () => [
@@ -28,8 +30,14 @@ export default function Header({
     setMenuOpen(false);
   };
 
+  const handleAction = (onClick) => () => {
+    if (onClick) onClick();
+    setActionsOpen(false);
+  };
+
   useEffect(() => {
     setMenuOpen(false);
+    setActionsOpen(false);
   }, [activeView]);
 
   return (
@@ -71,22 +79,32 @@ export default function Header({
         ))}
       </nav>
 
-      <div className="header-actions">
+      <button
+        type="button"
+        className="actions-toggle"
+        aria-expanded={actionsOpen}
+        aria-controls={actionsMenuId}
+        onClick={() => setActionsOpen((v) => !v)}
+      >
+        ⚡ Actions rapides
+      </button>
+
+      <div className={`header-actions ${actionsOpen ? 'open' : ''}`} id={actionsMenuId}>
         {onOpenLibrary && (
-          <button onClick={onOpenLibrary} className="small-button" aria-label="Ouvrir les archives">
+          <button onClick={handleAction(onOpenLibrary)} className="small-button" aria-label="Ouvrir les archives">
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
               <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           </button>
         )}
         {onSaveSession && (
-          <button onClick={onSaveSession} className="button-primary" aria-label="Sauvegarder la session">
+          <button onClick={handleAction(onSaveSession)} className="button-primary" aria-label="Sauvegarder la session">
             Sauvegarder
           </button>
         )}
         {onToggleSessionMode && (
           <button
-            onClick={onToggleSessionMode}
+            onClick={handleAction(onToggleSessionMode)}
             className={`button-secondary ${isSessionMode ? 'active' : ''}`}
             aria-pressed={isSessionMode}
           >
