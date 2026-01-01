@@ -4,7 +4,7 @@ function Chip({ children }) {
   return <span className="pill subtle">{children}</span>;
 }
 
-export default function BubbleLoopModal({ loop, onClose }) {
+export default function BubbleLoopModal({ loop, onClose, mode = 'network' }) {
   const videoRef = useRef(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -56,6 +56,11 @@ export default function BubbleLoopModal({ loop, onClose }) {
     [loop?.title]
   );
 
+  const modeLabel = mode === 'library' ? 'Vidéothèque' : 'Constellation';
+  const modeHint = mode === 'library'
+    ? 'Lecture issue de la liste chronologique.'
+    : 'Lecture issue du graphe de résonance.';
+
   const handleCopy = async (text) => {
     try {
       if (navigator?.clipboard?.writeText) {
@@ -100,9 +105,10 @@ export default function BubbleLoopModal({ loop, onClose }) {
       <div className="modal-content wide" onClick={(e) => e.stopPropagation()}>
         <header className="modal-header">
           <div>
-            <p className="badge">BubbleLoop</p>
+            <p className="badge">BubbleLoop • {modeLabel}</p>
             <h2 className="section-title" style={{ fontSize: '1.4rem' }}>{loop.title}</h2>
             <div className="chip-row">
+              <Chip>{modeHint}</Chip>
               <Chip>{loop.duration ? `${loop.duration}s` : 'durée inconnue'}</Chip>
               <Chip>{new Date(loop.date).toLocaleDateString()}</Chip>
             </div>
