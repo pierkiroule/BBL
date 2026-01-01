@@ -5,17 +5,27 @@ import { TOOL_RENDERERS, computeAlpha, ensureStrokeSeed, isStampTool, prepareStr
 import { isClosedShape } from '../utils/geometry.js';
 import { sanitizeText } from '../utils/text.js';
 
-function getPosition(canvas, event) {
+function clampZoom(value) {
+  return Math.min(6, Math.max(0.2, value || 1));
+}
+
+function getPointerInfo(canvas, event) {
   const rect = canvas.getBoundingClientRect();
   const clientX = event.touches ? event.touches[0].clientX : event.clientX;
   const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
-  const cx = rect.width / 2;
-  const cy = rect.height / 2;
-  const dist = Math.hypot(x - cx, y - cy);
-  if (dist > cx) return null;
-  return { x, y };
+  const screenX = clientX - rect.left;
+  const screenY = clientY - rect.top;
+  if (screenX < 0 || screenY < 0 || screenX > rect.width || screenY > rect.height) return null;
+  return { rect, screenX, screenY };
+}
+
+function screenToWorld(canvas, event, camera, zoomOverride) {
+  const info = getPointerInfo(canvas, event);
+  if (!info) return null;
+  const zoom = clampZoom(zoomOverride ?? camera.zoom ?? 1);
+  const wx = (info.screenX - info.rect.width / 2) / zoom + (camera.x || 0);
+  const wy = (info.screenY - info.rect.height / 2) / zoom + (camera.y || 0);
+  return { world: { x: wx, y: wy }, screen: { x: info.screenX, y: info.screenY }, rect: info.rect };
 }
 
 function defaultSizeForTool(tool) {
@@ -105,6 +115,11 @@ export function useBubbleEngine() {
   const fileUrlRef = useRef(null);
   const resonanceRef = useRef({ bass: 0, mid: 0, treble: 0 });
   const displaySizeRef = useRef(0);
+  const dprRef = useRef(1);
+  const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
+  const panKeyRef = useRef(false);
+  const panStateRef = useRef({ active: false, lastX: 0, lastY: 0 });
+  const lastPointerRef = useRef(null);
 
   const ensureAudioElement = useCallback(() => {
     if (!audioElRef.current) {
@@ -141,6 +156,7 @@ export function useBubbleEngine() {
     if (!size) return;
     displaySizeRef.current = size;
     const dpr = window.devicePixelRatio || 1;
+    dprRef.current = dpr;
     [drawingRef.current, loopRef.current].forEach((canvas) => {
       if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -219,9 +235,18 @@ export function useBubbleEngine() {
   const handlePointerDown = useCallback(
     (event) => {
       event.preventDefault();
-      if (!drawingRef.current) return;
-      const pos = getPosition(drawingRef.current, event);
-      if (!pos) return;
+      const canvas = drawingRef.current;
+      if (!canvas) return;
+      const info = screenToWorld(canvas, event, cameraRef.current);
+      if (!info) return;
+      lastPointerRef.current = info;
+      const isMultiTouch = event.touches && event.touches.length > 1;
+      const isPanGesture = panKeyRef.current || isMultiTouch || event.button === 1 || event.button === 2;
+      if (isPanGesture) {
+        panStateRef.current = { active: true, lastX: info.screen.x, lastY: info.screen.y };
+        return;
+      }
+      const pos = info.world;
       ensureAudioElement();
       const { time: currentTime } = getLoopState();
       const tool = toolRef.current;
@@ -253,40 +278,59 @@ export function useBubbleEngine() {
   const handlePointerMove = useCallback(
     (event) => {
       if (isDrawingRef.current) event.preventDefault();
-      if (!isDrawingRef.current || !drawingRef.current) return;
-      const pos = getPosition(drawingRef.current, event);
-      if (pos) {
-        const { time: currentTime } = getLoopState();
-        const duration = getDuration();
-        const stroke = currentStrokeRef.current;
-        const lastPoint = stroke?.points?.[stroke.points.length - 1];
-
-        const hasLoopRestarted = !isPingPong() && stroke && lastPoint && currentTime < lastPoint.t;
-
-        if (stroke && lastPoint && hasLoopRestarted) {
-          const completedStroke = {
-            ...stroke,
-            points: [...stroke.points, { ...lastPoint, t: duration }],
-          };
-          appendStroke(completedStroke);
-          currentStrokeRef.current = ensureStrokeSeed({
-            ...stroke,
-            points: [
-              { ...lastPoint, t: 0 },
-              { ...pos, t: currentTime },
-            ],
-          });
-        } else {
-          currentStrokeRef.current?.points.push({ ...pos, t: currentTime });
-        }
-      } else {
+      const canvas = drawingRef.current;
+      if (!canvas) return;
+      const info = screenToWorld(canvas, event, cameraRef.current);
+      if (!info) {
         stopDrawing();
+        return;
+      }
+      lastPointerRef.current = info;
+
+      if (panStateRef.current.active) {
+        const dx = info.screen.x - panStateRef.current.lastX;
+        const dy = info.screen.y - panStateRef.current.lastY;
+        panStateRef.current.lastX = info.screen.x;
+        panStateRef.current.lastY = info.screen.y;
+        cameraRef.current.x -= dx / cameraRef.current.zoom;
+        cameraRef.current.y -= dy / cameraRef.current.zoom;
+        return;
+      }
+
+      if (!isDrawingRef.current) return;
+      const pos = info.world;
+      const { time: currentTime } = getLoopState();
+      const duration = getDuration();
+      const stroke = currentStrokeRef.current;
+      const lastPoint = stroke?.points?.[stroke.points.length - 1];
+
+      const hasLoopRestarted = !isPingPong() && stroke && lastPoint && currentTime < lastPoint.t;
+
+      if (stroke && lastPoint && hasLoopRestarted) {
+        const completedStroke = {
+          ...stroke,
+          points: [...stroke.points, { ...lastPoint, t: duration }],
+        };
+        appendStroke(completedStroke);
+        currentStrokeRef.current = ensureStrokeSeed({
+          ...stroke,
+          points: [
+            { ...lastPoint, t: 0 },
+            { ...pos, t: currentTime },
+          ],
+        });
+      } else {
+        currentStrokeRef.current?.points.push({ ...pos, t: currentTime });
       }
     },
     [appendStroke, getDuration, getLoopState, isPingPong, stopDrawing]
   );
 
   const handlePointerUp = useCallback(() => {
+    if (panStateRef.current.active) {
+      panStateRef.current = { active: false, lastX: 0, lastY: 0 };
+      return;
+    }
     stopDrawing();
   }, [stopDrawing]);
 
@@ -318,6 +362,30 @@ export function useBubbleEngine() {
     };
   }, [handlePointerDown, handlePointerMove, handlePointerUp, resize]);
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.code !== 'Space') return;
+      const targetTag = event.target?.tagName;
+      if (targetTag && ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION'].includes(targetTag)) return;
+      if (event.target?.isContentEditable) return;
+      panKeyRef.current = true;
+      event.preventDefault();
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.code !== 'Space') return;
+      panKeyRef.current = false;
+      panStateRef.current = { active: false, lastX: 0, lastY: 0 };
+    };
+
+    window.addEventListener('keydown', handleKeyDown, { passive: false });
+    window.addEventListener('keyup', handleKeyUp, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   useEffect(() => () => revokeFileUrl(), [revokeFileUrl]);
 
   const ensureAudioContext = useCallback(() => {
@@ -338,12 +406,27 @@ export function useBubbleEngine() {
       if (!ctx) return;
       const size = sizeOverride || displaySizeRef.current || ctx.canvas.width;
       const duration = getDuration();
-      if (!ctx.__exporting) {
-  ctx.clearRect(0, 0, size, size);
-}
+      const dpr = ctx.__exporting ? 1 : dprRef.current || 1;
+      const pxSize = size * dpr;
+
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, pxSize, pxSize);
+      ctx.restore();
+
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const camera = cameraRef.current || { x: 0, y: 0, zoom: 1 };
+      const cx = size / 2;
+      const cy = size / 2;
+      ctx.translate(cx, cy);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-camera.x, -camera.y);
+
       if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, duration, symmetryRef.current, true, res, size, presenceRef.current, duration));
       strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size, presenceRef.current, duration));
       if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size, presenceRef.current, duration);
+      ctx.restore();
     },
     [getDuration]
   );
@@ -482,6 +565,35 @@ export function useBubbleEngine() {
     sensitivityRef.current = value;
   }, []);
 
+  const setZoom = useCallback(
+    (value, anchorInfo = lastPointerRef.current) => {
+      const camera = cameraRef.current || { x: 0, y: 0, zoom: 1 };
+      const next = clampZoom(value);
+      const canvas = drawingRef.current;
+      const rect = anchorInfo?.rect || canvas?.getBoundingClientRect();
+      const screen = anchorInfo?.screen || anchorInfo;
+      const centerX = rect ? rect.width / 2 : 0;
+      const centerY = rect ? rect.height / 2 : 0;
+      const anchorX = screen?.x ?? centerX;
+      const anchorY = screen?.y ?? centerY;
+
+      if (rect) {
+        const beforeX = (anchorX - centerX) / camera.zoom + camera.x;
+        const beforeY = (anchorY - centerY) / camera.zoom + camera.y;
+        camera.zoom = next;
+        const afterX = (anchorX - centerX) / camera.zoom + camera.x;
+        const afterY = (anchorY - centerY) / camera.zoom + camera.y;
+        camera.x += beforeX - afterX;
+        camera.y += beforeY - afterY;
+      } else {
+        camera.zoom = next;
+      }
+
+      cameraRef.current = { ...camera };
+    },
+    []
+  );
+
   const clearAudioSource = useCallback(() => {
     revokeFileUrl();
     if (audioElRef.current) {
@@ -532,6 +644,7 @@ export function useBubbleEngine() {
   const clear = useCallback(() => {
     strokesRef.current = [];
     currentStrokeRef.current = null;
+    cameraRef.current = { x: 0, y: 0, zoom: 1 };
     const size = displaySizeRef.current || loopCtxRef.current?.canvas.width || 0;
     if (loopCtxRef.current) loopCtxRef.current.clearRect(0, 0, size, size);
     if (drawCtxRef.current) drawCtxRef.current.clearRect(0, 0, size, size);
@@ -669,6 +782,7 @@ export function useBubbleEngine() {
     toggleSessionMode,
     exportVideo: handleExport,
     setIntensity,
+    setZoom,
     setAudioFile,
     setDemoAudio,
     toggleAudio,
