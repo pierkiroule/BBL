@@ -5,16 +5,14 @@ import { TOOL_RENDERERS, computeAlpha, ensureStrokeSeed, isStampTool, prepareStr
 import { isClosedShape } from '../utils/geometry.js';
 import { sanitizeText } from '../utils/text.js';
 
-function getPosition(canvas, event) {
+function getPosition(canvas, event, zoom = 1) {
   const rect = canvas.getBoundingClientRect();
   const clientX = event.touches ? event.touches[0].clientX : event.clientX;
   const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
-  const cx = rect.width / 2;
-  const cy = rect.height / 2;
-  const dist = Math.hypot(x - cx, y - cy);
-  if (dist > cx) return null;
+  const scale = zoom || 1;
+  const x = (clientX - rect.left) / scale;
+  const y = (clientY - rect.top) / scale;
+  if (x < 0 || y < 0 || x > rect.width / scale || y > rect.height / scale) return null;
   return { x, y };
 }
 
@@ -105,6 +103,7 @@ export function useBubbleEngine() {
   const fileUrlRef = useRef(null);
   const resonanceRef = useRef({ bass: 0, mid: 0, treble: 0 });
   const displaySizeRef = useRef(0);
+  const zoomRef = useRef(1);
 
   const ensureAudioElement = useCallback(() => {
     if (!audioElRef.current) {
@@ -220,7 +219,7 @@ export function useBubbleEngine() {
     (event) => {
       event.preventDefault();
       if (!drawingRef.current) return;
-      const pos = getPosition(drawingRef.current, event);
+      const pos = getPosition(drawingRef.current, event, zoomRef.current);
       if (!pos) return;
       ensureAudioElement();
       const { time: currentTime } = getLoopState();
@@ -254,7 +253,7 @@ export function useBubbleEngine() {
     (event) => {
       if (isDrawingRef.current) event.preventDefault();
       if (!isDrawingRef.current || !drawingRef.current) return;
-      const pos = getPosition(drawingRef.current, event);
+      const pos = getPosition(drawingRef.current, event, zoomRef.current);
       if (pos) {
         const { time: currentTime } = getLoopState();
         const duration = getDuration();
@@ -482,6 +481,11 @@ export function useBubbleEngine() {
     sensitivityRef.current = value;
   }, []);
 
+  const setZoom = useCallback((value) => {
+    const next = Math.min(3, Math.max(0.5, value || 1));
+    zoomRef.current = next;
+  }, []);
+
   const clearAudioSource = useCallback(() => {
     revokeFileUrl();
     if (audioElRef.current) {
@@ -669,6 +673,7 @@ export function useBubbleEngine() {
     toggleSessionMode,
     exportVideo: handleExport,
     setIntensity,
+    setZoom,
     setAudioFile,
     setDemoAudio,
     toggleAudio,

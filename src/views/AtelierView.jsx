@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ControlPanel from '../components/ControlPanel.jsx';
 import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
@@ -53,6 +53,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     setSymmetry: setEngineSymmetry,
     toggleSessionMode: toggleEngineSessionMode,
     exportVideo,
+    setZoom: setEngineZoom,
     setIntensity: setEngineIntensity,
     setAudioFile,
     toggleAudio,
@@ -82,21 +83,23 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [strokeOpacity, setStrokeOpacity] = useState(1);
   const [emoji, setEmoji] = useState('✨');
   const [stampOutline, setStampOutline] = useState(true);
+  const [zoom, setZoom] = useState(1);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exitAnnouncement, setExitAnnouncement] = useState('');
+  const canvasWrapperRef = useRef(null);
   const ORBIT_TOOLS = [
-  { id: 'brush', icon: '🖌️' },
-  { id: 'watercolor', icon: '💧' },
-  { id: 'ink', icon: '🖋️' },
-  { id: 'particle-fill', icon: '✨' },
-  { id: 'emoji-stamp', icon: '😊' },
-  { id: 'text', icon: '🔤' },
-  { id: 'image-stamp', icon: '🖼️' },
-  { id: 'soft-eraser', icon: '🧽' },
-];
+    { id: 'brush', icon: '🖌️' },
+    { id: 'watercolor', icon: '💧' },
+    { id: 'ink', icon: '🖋️' },
+    { id: 'particle-fill', icon: '✨' },
+    { id: 'emoji-stamp', icon: '😊' },
+    { id: 'text', icon: '🔤' },
+    { id: 'image-stamp', icon: '🖼️' },
+    { id: 'soft-eraser', icon: '🧽' },
+  ];
 
   useEffect(() => {
     setTool(activeTool);
@@ -162,6 +165,10 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     start();
     return () => stop();
   }, [start, stop]);
+
+  useEffect(() => {
+    setEngineZoom(zoom);
+  }, [setEngineZoom, zoom]);
 
   useEffect(() => {
     if (sessionToLoad) {
@@ -276,6 +283,10 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     [sessionName]
   );
 
+  const handleZoomIn = () => setZoom((value) => Math.min(3, Number((value + 0.15).toFixed(2))));
+  const handleZoomOut = () => setZoom((value) => Math.max(0.5, Number((value - 0.15).toFixed(2))));
+  const handleZoomReset = () => setZoom(1);
+
   const enterImmersiveCanvas = useCallback(() => setIsImmersive(true), []);
   const exitImmersiveCanvas = useCallback(() => {
     setIsImmersive(false);
@@ -287,6 +298,26 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     const timeout = setTimeout(() => setExitAnnouncement(''), 3200);
     return () => clearTimeout(timeout);
   }, [exitAnnouncement]);
+
+  useEffect(() => {
+    const wrapper = canvasWrapperRef.current;
+    const handleWheel = (event) => {
+      if (event.ctrlKey) {
+        event.preventDefault();
+      }
+    };
+    const blockGesture = (event) => event.preventDefault();
+
+    wrapper?.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('gesturestart', blockGesture);
+    window.addEventListener('gesturechange', blockGesture);
+
+    return () => {
+      wrapper?.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('gesturestart', blockGesture);
+      window.removeEventListener('gesturechange', blockGesture);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isImmersive) return undefined;
@@ -322,9 +353,21 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
           <div className="canvas-toolbar glass-panel">
             <div className="canvas-hints">
               <span className="badge">Geste libre</span>
-              <p className="muted">Pincer pour zoomer, glisser pour dessiner.</p>
+              <p className="muted">Utilisez les boutons de zoom, glissez pour dessiner.</p>
             </div>
             <div className="canvas-toolbar-actions">
+              <div className="zoom-controls" role="group" aria-label="Zoom sur le canevas">
+                <button type="button" className="ghost" onClick={handleZoomOut} aria-label="Zoom arrière" disabled={zoom <= 0.55}>
+                  −
+                </button>
+                <span className="zoom-level" aria-live="polite">{Math.round(zoom * 100)}%</span>
+                <button type="button" className="ghost" onClick={handleZoomIn} aria-label="Zoom avant" disabled={zoom >= 2.95}>
+                  +
+                </button>
+                <button type="button" className="ghost subtle" onClick={handleZoomReset} aria-label="Réinitialiser le zoom">
+                  1x
+                </button>
+              </div>
               <button className="ghost" onClick={enterImmersiveCanvas} aria-pressed={isImmersive}>
                 Canvas seul
               </button>
@@ -333,8 +376,8 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
 
        <main className="canvas-viewport">
 
-  <div className="canvas-wrapper" id="canvas-outer">
-    <div className="canvas-clip">
+  <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
+    <div className="canvas-clip" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
       <canvas ref={loopRef} />
       <canvas ref={drawingRef} />
     </div>

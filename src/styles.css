@@ -312,6 +312,35 @@ a:focus-visible {
   gap: 0.5rem;
 }
 
+.zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+.zoom-controls .ghost {
+  min-width: 2.5rem;
+  min-height: 2.4rem;
+}
+
+.zoom-controls .subtle {
+  color: #475569;
+}
+
+.zoom-level {
+  font-weight: 800;
+  color: #0f172a;
+  min-width: 3.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .canvas-viewport {
   flex: 1;
   display: flex;
@@ -351,6 +380,8 @@ a:focus-visible {
   background: white;
   touch-action: none;
   pointer-events: none;
+  will-change: transform;
+  transition: transform 160ms ease;
 }
 
 .atelier-view.immersive {
