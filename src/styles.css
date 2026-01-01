@@ -1133,14 +1133,16 @@ input[type="range"] { accent-color: var(--primary); }
 }
 
 .gallery-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "mode search count";
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap;
   padding: 0 0.25rem 0.5rem;
 }
 
 .search-bar {
+  grid-area: search;
   flex: 1;
 }
 
@@ -1164,8 +1166,14 @@ input[type="range"] { accent-color: var(--primary); }
 }
 
 .gallery-mode-toggle {
+  grid-area: mode;
   display: inline-flex;
   gap: 0.35rem;
+}
+
+.gallery-count {
+  grid-area: count;
+  justify-self: end;
 }
 
 .graph-area svg {
@@ -1191,6 +1199,47 @@ input[type="range"] { accent-color: var(--primary); }
   border: 1px solid var(--slate-200);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   background: white;
+}
+
+.graph-fallback {
+  border: 1px solid var(--slate-200);
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 65%, #eef2ff 100%);
+  padding: 0.85rem;
+}
+
+.graph-fallback-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.graph-fallback-card {
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.graph-fallback-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.graph-fallback-title {
+  margin: 0.1rem 0 0;
+  font-weight: 800;
+  color: var(--slate-800);
+}
+
+.graph-fallback-tags {
+  gap: 0.35rem;
 }
 
 .videotheque-area {
@@ -1500,6 +1549,19 @@ input[type="range"] { accent-color: var(--primary); }
     gap: clamp(0.85rem, 2.2vw, 1rem);
   }
 
+  .gallery-toolbar {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "search"
+      "mode"
+      "count";
+    gap: 0.6rem;
+  }
+
+  .gallery-count {
+    justify-self: start;
+  }
+
   .canvas-wrapper {
     max-width: none;
     max-height: min(82vh, 640px);
@@ -1590,6 +1652,21 @@ input[type="range"] { accent-color: var(--primary); }
   .view-layer {
     padding: clamp(0.9rem, 4vw, 1.25rem) clamp(0.85rem, 4.5vw, 1.35rem) clamp(1.1rem, 5vw, 1.6rem);
     gap: 0.75rem;
+  }
+
+  .gallery-card {
+    overflow: visible;
+  }
+
+  .gallery-toolbar {
+    position: sticky;
+    top: 0.35rem;
+    z-index: 10;
+    padding: 0.65rem;
+    border-radius: 1.1rem;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--slate-200);
   }
 
   .header-bar {

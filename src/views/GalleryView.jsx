@@ -116,10 +116,12 @@ export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
   }, [isLibraryMode, loops, tokens]);
 
   const graphWidth = Math.max(320, size.width || 720);
-  const graphHeight = Math.max(420, Math.min(720, Math.round(graphWidth * 0.65)));
+  const graphHeight = Math.max(340, Math.min(680, Math.round(graphWidth * 0.65)));
+  const isCompactGraph = size.width < 760;
+  const showGraph = isNetworkMode && !isCompactGraph;
 
   const { nodes, links } = useConstellationLayout({
-    items: isNetworkMode ? filteredLoops : [],
+    items: showGraph ? filteredLoops : [],
     width: graphWidth,
     height: graphHeight,
   });
@@ -209,7 +211,7 @@ export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
               aria-label={isNetworkMode ? 'Filtrer par tags' : 'Filtrer par titre, date ou tags'}
             />
           </div>
-          <div className="pill subtle">
+          <div className="pill subtle gallery-count">
             {visibleCount} / {totalCount || '0'} BubbleLoops visibles
           </div>
         </div>
@@ -247,8 +249,8 @@ export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
               </div>
             )}
           </div>
-        ) : (
-          <div className="graph-area" style={{ minHeight: '420px' }}>
+        ) : showGraph ? (
+          <div className="graph-area" style={{ minHeight: `${graphHeight}px` }}>
             {visibleCount === 0 ? (
               <div className="empty-state">
                 <p className="badge">{hasLoops ? 'Ajustez vos tags' : 'Constellation vide'}</p>
@@ -351,6 +353,65 @@ export default function GalleryView({ onNavigateHome, onNavigateAtelier }) {
                   })}
                 </g>
               </svg>
+            )}
+          </div>
+        ) : (
+          <div className="graph-fallback">
+            {visibleCount === 0 ? (
+              <div className="empty-state">
+                <p className="badge">{hasLoops ? 'Ajustez vos tags' : 'Constellation vide'}</p>
+                <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+                  <p className="muted">
+                    {hasLoops
+                      ? 'Aucune BubbleLoop ne correspond à ces tags. Allégez le filtre ou explorez d’autres mots clés pour retrouver vos exports.'
+                      : 'Depuis l’atelier, exportez votre BubbleLoop avec un titre et des tags pour nourrir la constellation.'}
+                  </p>
+
+                  {!hasLoops && onNavigateAtelier && (
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={onNavigateAtelier}
+                      aria-label="Créer ma première BubbleLoop dans l’atelier"
+                      style={{ marginTop: '1rem' }}
+                    >
+                      Créer ma première BubbleLoop
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="graph-fallback-list" role="list">
+                {filteredLoops.map((loop) => (
+                  <article key={loop.id} className="graph-fallback-card" role="listitem">
+                    <div className="graph-fallback-head">
+                      <div>
+                        <p className="badge subtle">BubbleLoop</p>
+                        <h3 className="graph-fallback-title">{loop.title || 'Sans titre'}</h3>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghost pill small-button"
+                        onClick={() => handleSelect(loop.id)}
+                        aria-label={`Ouvrir ${loop.title || 'cette BubbleLoop'}`}
+                      >
+                        Ouvrir
+                      </button>
+                    </div>
+                    <div className="chip-row graph-fallback-tags">
+                      {loop.tags?.length ? (
+                        loop.tags.map((tag) => (
+                          <span key={tag} className="pill subtle">
+                            {tag}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="pill subtle">Sans tag</span>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
             )}
           </div>
         )}
