@@ -38,7 +38,7 @@ export default function Header({
         <BubbleLoopLogo size={54} showLabel={false} />
         <div className="flex flex-col">
           <h1 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>
-            BBL <span style={{ color: 'var(--primary)' }}>BubbleLoop</span>
+           Bubble Loop <span style={{ color: 'var(--primary)' }}> #BbL</span>
           </h1>
           {sessionName && (
             <span className="badge" style={{ marginTop: '0.15rem', maxWidth: '180px' }} title={sessionName}>

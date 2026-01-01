@@ -338,7 +338,9 @@ export function useBubbleEngine() {
       if (!ctx) return;
       const size = sizeOverride || displaySizeRef.current || ctx.canvas.width;
       const duration = getDuration();
-      ctx.clearRect(0, 0, size, size);
+      if (!ctx.__exporting) {
+  ctx.clearRect(0, 0, size, size);
+}
       if (ghostRef.current) strokesRef.current.forEach((s) => drawStroke(ctx, s, duration, symmetryRef.current, true, res, size, presenceRef.current, duration));
       strokesRef.current.forEach((s) => drawStroke(ctx, s, time, symmetryRef.current, false, res, size, presenceRef.current, duration));
       if (isDrawingRef.current && currentStrokeRef.current) drawStroke(ctx, currentStrokeRef.current, time, symmetryRef.current, false, res, size, presenceRef.current, duration);
@@ -536,62 +538,92 @@ export function useBubbleEngine() {
   }, []);
 
   const handleExport = useCallback(async ({ skipDownload = false } = {}) => {
-    if (typeof MediaRecorder === 'undefined') {
-      window.alert("L'export vidéo n'est pas supporté sur ce navigateur.");
-      return;
-    }
-    if (!strokesRef.current.length && !currentStrokeRef.current) {
-      window.alert('Ajoutez un tracé avant de lancer un export.');
-      return;
-    }
-
-    const buffer = document.createElement('canvas');
-    const exportSize = 640;
-    buffer.width = exportSize;
-    buffer.height = exportSize;
-    const ctx = buffer.getContext('2d');
-    const duration = getDuration();
-    const recordLength = (duration * (isPingPong() ? 2 : 1)) / getSpeed();
-    const startTime = Date.now();
-    let capture;
-
-    const drawFrameForExport = () => {
-      const elapsed = mapElapsedToLoopTime(Date.now() - startTime);
-      ctx.save();
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(0, 0, buffer.width, buffer.height);
-      ctx.beginPath();
-      ctx.arc(buffer.width / 2, buffer.height / 2, buffer.width / 2 - 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
-      ctx.clip();
-      renderFrame(ctx, elapsed, resonanceRef.current, exportSize);
-      ctx.restore();
-    };
-
-    drawFrameForExport();
-    capture = setInterval(drawFrameForExport, 1000 / 30);
-
-    try {
-      const blob = await recordVideo({ canvas: buffer, duration: recordLength });
-      if (blob) {
-        if (!skipDownload) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `bbl-loop-${Date.now()}.webm`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-        return blob;
-      } else {
-        window.alert("L'export vidéo a échoué. Réessayez avec un autre navigateur.");
-      }
-    } finally {
-      if (capture) clearInterval(capture);
-    }
+  if (typeof MediaRecorder === 'undefined') {
+    window.alert("L'export vidéo n'est pas supporté sur ce navigateur.");
     return null;
-  }, [getDuration, getSpeed, isPingPong, mapElapsedToLoopTime, renderFrame]);
+  }
+
+  if (!strokesRef.current.length && !currentStrokeRef.current) {
+    window.alert('Ajoutez un tracé avant de lancer un export.');
+    return null;
+  }
+
+  const buffer = document.createElement('canvas');
+  const exportSize = 640;
+  buffer.width = exportSize;
+  buffer.height = exportSize;
+
+  const ctx = buffer.getContext('2d');
+  const duration = getDuration();
+  const recordLength = (duration * (isPingPong() ? 2 : 1)) / getSpeed();
+  const startTime = Date.now();
+  let capture = null;
+
+  const drawFrameForExport = () => {
+    const elapsed = mapElapsedToLoopTime(Date.now() - startTime);
+
+    ctx.save();
+
+    // ✅ FOND OPAQUE (clé)
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(0, 0, buffer.width, buffer.height);
+
+    // ✅ MASQUE CIRCULAIRE
+    ctx.beginPath();
+    ctx.arc(
+      buffer.width / 2,
+      buffer.height / 2,
+      buffer.width / 2 - 5,
+      0,
+      Math.PI * 2
+    );
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.clip();
+
+    // ⚠️ Drapeau export
+    ctx.__exporting = true;
+    renderFrame(ctx, elapsed, resonanceRef.current, exportSize);
+    ctx.__exporting = false;
+
+    ctx.restore();
+  };
+
+  drawFrameForExport();
+  capture = setInterval(drawFrameForExport, 1000 / 30);
+
+  try {
+    const blob = await recordVideo({
+      canvas: buffer,
+      duration: recordLength,
+    });
+
+    if (!blob) {
+      window.alert("L'export vidéo a échoué.");
+      return null;
+    }
+
+    if (!skipDownload) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bubbleloop-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    return blob;
+  } finally {
+    if (capture) clearInterval(capture);
+  }
+}, [
+  getDuration,
+  getSpeed,
+  isPingPong,
+  mapElapsedToLoopTime,
+  renderFrame,
+]);
 
   const getSessionData = useCallback(() => ({
     strokes: strokesRef.current,

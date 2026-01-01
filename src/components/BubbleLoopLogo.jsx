@@ -67,7 +67,7 @@ export default function BubbleLoopLogo({
 
       <circle cx="110" cy="110" r="110" fill="var(--logo-bg)" />
 
-      <circle cx="110" cy="110" r="78" fill="none" stroke="var(--logo-track)" strokeWidth="14" />
+      <circle cx="110" cy="110" r="78" fill="none" stroke="var(--logo-track)" strokeWidth="10" />
 
       <circle
         cx="110"

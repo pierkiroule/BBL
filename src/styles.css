@@ -335,6 +335,8 @@ button {
   border-radius: 50%;
   overflow: hidden;
   background: white;
+  touch-action: none;
+  pointer-events: none;
 }
 
 .atelier-view.immersive {
@@ -406,6 +408,7 @@ canvas {
   width: 100%;
   height: 100%;
   touch-action: none;
+  pointer-events: auto ;
 }
 
 .timeline-container {
@@ -1406,4 +1409,66 @@ input[type="range"] { accent-color: var(--primary); }
   .footer-actions .danger {
     order: -1;
   }
+}
+.tool-orbit {
+  position: absolute;
+  inset: -56px;
+  pointer-events: none;
+}
+
+.orbit-tool {
+  --radius: 240px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform:
+    rotate(calc(360deg / var(--n) * var(--i)))
+    translate(var(--radius))
+    rotate(calc(-360deg / var(--n) * var(--i)));
+
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--slate-200);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.orbit-tools {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bubble-tools {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+
+.bubble-tool {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--slate-200);
+  font-size: 1.2rem;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bubble-tool.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }

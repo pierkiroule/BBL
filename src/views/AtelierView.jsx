@@ -87,6 +87,16 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exitAnnouncement, setExitAnnouncement] = useState('');
+  const ORBIT_TOOLS = [
+  { id: 'brush', icon: '🖌️' },
+  { id: 'watercolor', icon: '💧' },
+  { id: 'ink', icon: '🖋️' },
+  { id: 'particle-fill', icon: '✨' },
+  { id: 'emoji-stamp', icon: '😊' },
+  { id: 'text', icon: '🔤' },
+  { id: 'image-stamp', icon: '🖼️' },
+  { id: 'soft-eraser', icon: '🧽' },
+];
 
   useEffect(() => {
     setTool(activeTool);
@@ -321,15 +331,37 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
             </div>
           </div>
 
-          <main className="canvas-viewport">
-            <div className="canvas-wrapper" id="canvas-outer">
-              <div className="canvas-clip">
-                <canvas ref={loopRef} />
-                <canvas ref={drawingRef} />
-              </div>
-              <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
-            </div>
-          </main>
+       <main className="canvas-viewport">
+
+  <div className="canvas-wrapper" id="canvas-outer">
+    <div className="canvas-clip">
+      <canvas ref={loopRef} />
+      <canvas ref={drawingRef} />
+    </div>
+
+    <OrbitingLoopIndicator
+      duration={duration}
+      speed={speed}
+      pingPong={pingPong}
+      paused={isPaused}
+    />
+  </div>
+
+  {/* ✅ ICI, hors du canvas */}
+  <div className="bubble-tools">
+    {ORBIT_TOOLS.map(tool => (
+      <button
+        key={tool.id}
+        className={`bubble-tool ${activeTool === tool.id ? 'active' : ''}`}
+        onClick={() => setActiveTool(tool.id)}
+        aria-label={tool.id}
+      >
+        {tool.icon}
+      </button>
+    ))}
+  </div>
+
+</main>
         </div>
 
         {!isImmersive && (
