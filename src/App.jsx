@@ -42,8 +42,6 @@ export default function App() {
         onOpenLibrary={openLibrary}
         sessionName={view === 'atelier' ? atelierHeader?.sessionName : null}
         onSaveSession={view === 'atelier' ? atelierHeader?.onSaveSession : undefined}
-        onToggleSessionMode={view === 'atelier' ? atelierHeader?.onToggleSessionMode : undefined}
-        isSessionMode={view === 'atelier' ? atelierHeader?.isSessionMode : undefined}
       />
       <div className="view-layer">
         {view === 'home' && (

@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-function ToolButton({ id, label, icon, active, onClick }) {
-  return (
-    <button className={`tool-btn ${active ? 'active' : ''}`} onClick={onClick} aria-pressed={active} aria-label={label}>
-      {icon}
-    </button>
-  );
-}
-
 export default function ControlPanel({
   color,
   onColorChange,
@@ -27,135 +19,16 @@ export default function ControlPanel({
   symmetry,
   onClear,
   onExport,
-  onToolChange,
-  activeTool,
   onAudioFile,
   onToggleAudio,
   isPlaying,
   intensity,
   onIntensityChange,
-  onToggleSessionMode,
-  isSessionMode,
   onToggleDemoAudio,
   isDemoAudioEnabled,
-  strokeSize,
-  onStrokeSizeChange,
-  strokeOpacity,
-  onStrokeOpacityChange,
-  emoji,
-  onEmojiChange,
-  onStampImage,
-  stampOutline,
-  onStampOutlineChange,
 }) {
   const [isMobile, setIsMobile] = useState(false);
-  const [panelStates, setPanelStates] = useState({ trace: true, audio: true, tool: true });
-  const tools = useMemo(
-    () => [
-      {
-        id: 'pencil',
-        label: 'Crayon',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-          </svg>
-        ),
-      },
-      {
-        id: 'brush',
-        label: 'Pinceau',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="m14 11 3 3L22 4" />
-            <path d="m21 12-9 9-9-9a5 5 0 0 1 7-7l4 4" />
-          </svg>
-        ),
-      },
-      {
-        id: 'watercolor',
-        label: 'Aquarelle',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M12 3c4 0 8 3 8 7s-3.5 7-8 7-8-3-8-7 4-7 8-7Z" />
-            <path d="M8 10c0 1.5 2 3 4 3" />
-          </svg>
-        ),
-      },
-      {
-        id: 'ink',
-        label: 'Encre',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M12 3c2 2 5 4 5 7.5 0 2.5-1.5 5.5-5 7.5-3.5-2-5-5-5-7.5C7 7 10 5 12 3Z" />
-            <path d="M9 11c1 .5 2 .5 3 0" />
-          </svg>
-        ),
-      },
-      {
-        id: 'particle-fill',
-        label: 'Nuage',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="8" cy="8" r="2" />
-            <circle cx="16" cy="10" r="2" />
-            <circle cx="12" cy="15" r="2" />
-            <path d="M6 18c6 3 12 0 12-4.5S12 7 8 9" />
-          </svg>
-        ),
-      },
-      {
-        id: 'emoji-stamp',
-        label: 'Emoji',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M8 10h.01M16 10h.01" />
-            <path d="M8 15s1.5 2 4 2 4-2 4-2" />
-          </svg>
-        ),
-      },
-      {
-        id: 'text',
-        label: 'Texte',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M5 6h14M12 6v12m-6 0h12" />
-          </svg>
-        ),
-      },
-      {
-        id: 'image-stamp',
-        label: 'Pastille',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="8" />
-            <path d="m8 12 2 2 3-4 3 4" />
-          </svg>
-        ),
-      },
-      {
-        id: 'eraser',
-        label: 'Gomme',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.9-9.9c1-1 2.5-1 3.4 0l4.4 4.4c1 1 1 2.5 0 3.4L10.5 21z" />
-            <path d="m22 21H7" />
-          </svg>
-        ),
-      },
-      {
-        id: 'soft-eraser',
-        label: 'Gomme douce',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M4 15c2 2 6 4 8 4s4-1 6-3" />
-            <path d="M6 10a5 5 0 0 1 5-4 5 5 0 0 1 5 4" />
-          </svg>
-        ),
-      },
-    ],
-    []
-  );
+  const [panelStates, setPanelStates] = useState({ trace: true, audio: true });
 
   const [timePanelOpen, setTimePanelOpen] = useState(true);
 
@@ -169,11 +42,11 @@ export default function ControlPanel({
 
   useEffect(() => {
     if (isMobile) {
-      setPanelStates({ trace: false, audio: false, tool: false });
+      setPanelStates({ trace: false, audio: false });
       setTimePanelOpen(true);
       return;
     }
-    setPanelStates({ trace: true, audio: true, tool: true });
+    setPanelStates({ trace: true, audio: true });
     setTimePanelOpen(true);
   }, [isMobile]);
 
@@ -345,165 +218,57 @@ export default function ControlPanel({
               <button className={`ghost ${ghostMode ? 'active' : ''}`} onClick={onGhostToggle} aria-pressed={ghostMode}>
                 Fantôme
               </button>
-              {!isSessionMode && (
-                <button className={`ghost ${symmetry > 1 ? 'active' : ''}`} onClick={onSymmetryToggle} aria-pressed={symmetry > 1}>
-                  {symmetry > 1 ? `Symétrie x${symmetry}` : 'Symétrie'}
-                </button>
-              )}
+              <button className={`ghost ${symmetry > 1 ? 'active' : ''}`} onClick={onSymmetryToggle} aria-pressed={symmetry > 1}>
+                {symmetry > 1 ? `Symétrie x${symmetry}` : 'Symétrie'}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {!isSessionMode && (
-        <div className={`panel-section audio-panel ${isPanelOpen('audio') ? 'expanded' : 'collapsed'}`}>
-          <div className="section-head">
-            <span className="badge">Ambiance</span>
-            <span className="pill subtle">{intensityMood}</span>
-            {isMobile && (
-              <button
-                type="button"
-                className="ghost pill"
-                onClick={() => togglePanel('audio')}
-                aria-pressed={isPanelOpen('audio')}
-                aria-expanded={isPanelOpen('audio')}
-                aria-controls="audio-panel-body"
-              >
-                {isPanelOpen('audio') ? 'Fermer' : 'Ouvrir'}
-              </button>
-            )}
-          </div>
-          <div className={`panel-body ${isPanelOpen('audio') ? 'open' : ''}`} id="audio-panel-body">
-            <div className="slider-row audio-row">
-              <button className={`ghost ${isDemoAudioEnabled ? 'active' : ''}`} onClick={onToggleDemoAudio} style={{ minWidth: '95px' }}>
-                {isDemoAudioEnabled ? 'Démo audio' : 'Audio perso'}
-              </button>
-              <label className="small-button" style={{ cursor: 'pointer' }}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                  <path d="M9 19V5l12-2v14M12 15V3" />
-                </svg>
-                <input type="file" accept="audio/*" onChange={(e) => e.target.files[0] && onAudioFile(e.target.files[0])} className="hidden" />
-              </label>
-              <button className="button-primary" onClick={onToggleAudio} style={{ minWidth: '80px' }}>
-                {isPlaying ? 'Pause' : 'Lecture'}
-              </button>
-              <div className="range-input">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={intensity}
-                  onChange={(e) => onIntensityChange(Number(e.target.value))}
-                  aria-label="Sensibilité aux vibrations"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className={`panel-section ${isPanelOpen('tool') ? 'expanded' : 'collapsed'}`}>
+      <div className={`panel-section audio-panel ${isPanelOpen('audio') ? 'expanded' : 'collapsed'}`}>
         <div className="section-head">
-          <div>
-            <span className="badge">Outil</span>
-            <p className="section-title">Réglages rapides</p>
-          </div>
+          <span className="badge">Ambiance</span>
+          <span className="pill subtle">{intensityMood}</span>
           {isMobile && (
             <button
               type="button"
               className="ghost pill"
-              onClick={() => togglePanel('tool')}
-              aria-pressed={isPanelOpen('tool')}
-              aria-expanded={isPanelOpen('tool')}
-              aria-controls="tool-panel-body"
+              onClick={() => togglePanel('audio')}
+              aria-pressed={isPanelOpen('audio')}
+              aria-expanded={isPanelOpen('audio')}
+              aria-controls="audio-panel-body"
             >
-              {isPanelOpen('tool') ? 'Fermer' : 'Ouvrir'}
+              {isPanelOpen('audio') ? 'Fermer' : 'Ouvrir'}
             </button>
           )}
         </div>
-        <div className={`panel-body ${isPanelOpen('tool') ? 'open' : ''}`} id="tool-panel-body">
-          <div className="control-card">
-            <div className="slider-row">
-              <span className="pill">Taille</span>
-              <span className="pill strong">{Math.round(strokeSize)}px</span>
+        <div className={`panel-body ${isPanelOpen('audio') ? 'open' : ''}`} id="audio-panel-body">
+          <div className="slider-row audio-row">
+            <button className={`ghost ${isDemoAudioEnabled ? 'active' : ''}`} onClick={onToggleDemoAudio} style={{ minWidth: '95px' }}>
+              {isDemoAudioEnabled ? 'Démo audio' : 'Audio perso'}
+            </button>
+            <label className="small-button" style={{ cursor: 'pointer' }}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path d="M9 19V5l12-2v14M12 15V3" />
+              </svg>
+              <input type="file" accept="audio/*" onChange={(e) => e.target.files[0] && onAudioFile(e.target.files[0])} className="hidden" />
+            </label>
+            <button className="button-primary" onClick={onToggleAudio} style={{ minWidth: '80px' }}>
+              {isPlaying ? 'Pause' : 'Lecture'}
+            </button>
+            <div className="range-input">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={intensity}
+                onChange={(e) => onIntensityChange(Number(e.target.value))}
+                aria-label="Sensibilité aux vibrations"
+              />
             </div>
-            <input
-              type="range"
-              min="3"
-              max="64"
-              step="1"
-              value={strokeSize}
-              onChange={(e) => onStrokeSizeChange(Number(e.target.value))}
-              aria-label="Taille du tracé"
-            />
           </div>
-          <div className="control-card">
-            <div className="slider-row">
-              <span className="pill">Opacité</span>
-              <span className="pill subtle">{Math.round(strokeOpacity * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="1"
-              step="0.05"
-              value={strokeOpacity}
-              onChange={(e) => onStrokeOpacityChange(Number(e.target.value))}
-              aria-label="Opacité du tracé"
-            />
-          </div>
-          {activeTool === 'emoji-stamp' && (
-            <div className="control-card">
-              <div className="slider-row">
-                <span className="pill">Emoji</span>
-              </div>
-              <div className="switch-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-                {['✨', '🌿', '🔥', '🌊', '💫', '🎈', '🫧', '⭐️'].map((item) => (
-                  <button key={item} className={`ghost ${emoji === item ? 'active' : ''}`} onClick={() => onEmojiChange(item)}>
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {activeTool === 'image-stamp' && (
-            <div className="control-card">
-              <div className="slider-row">
-                <span className="pill">Pastille</span>
-                <button className={`ghost ${stampOutline ? 'active' : ''}`} onClick={() => onStampOutlineChange(!stampOutline)} aria-pressed={stampOutline}>
-                  Contour
-                </button>
-              </div>
-              <label className="small-button" style={{ cursor: 'pointer', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" />
-                  <path d="m7 15 3-3 2 2 3-4 2 3" />
-                </svg>
-                Importer
-                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onStampImage(e.target.files[0])} className="hidden" />
-              </label>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="tool-row">
-        <div className="tool-group">
-          {tools.map((tool) => (
-            <ToolButton
-              key={tool.id}
-              id={tool.id}
-              label={tool.label}
-              icon={tool.icon}
-              active={activeTool === tool.id}
-              onClick={() => onToolChange(tool.id)}
-            />
-          ))}
-        </div>
-        <div className="color-swatch">
-          <input type="color" value={color} onChange={(e) => onColorChange(e.target.value)} aria-label="Couleur" />
-          <div className="preview" style={{ backgroundColor: color }} />
         </div>
       </div>
 
@@ -513,12 +278,7 @@ export default function ControlPanel({
             <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
-        {!isSessionMode && (
-          <button className="export" onClick={onExport}>Vidéo</button>
-        )}
-        <button className="ghost" onClick={onToggleSessionMode} aria-pressed={isSessionMode}>
-          Mode séance
-        </button>
+        <button className="export" onClick={onExport}>Vidéo</button>
       </div>
     </footer>
   );

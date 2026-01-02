@@ -7,6 +7,7 @@ import OrbitingLoopIndicator from '../components/OrbitingLoopIndicator.jsx';
 import SaveSessionModal from '../components/SaveSessionModal.jsx';
 import ExportBubbleLoopModal from '../components/ExportBubbleLoopModal.jsx';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
+import { TOOL_COLORS, isPresetColor } from '../utils/palette.js';
 
 function defaultSizeForTool(tool) {
   switch (tool) {
@@ -15,8 +16,6 @@ function defaultSizeForTool(tool) {
       return 14;
     case 'ink':
       return 9;
-    case 'particle-fill':
-      return 12;
     case 'emoji-stamp':
     case 'text':
       return 16;
@@ -51,7 +50,6 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     setPresence: setEnginePresence,
     toggleGhost,
     setSymmetry: setEngineSymmetry,
-    toggleSessionMode: toggleEngineSessionMode,
     exportVideo,
     setZoom: setEngineZoom,
     setIntensity: setEngineIntensity,
@@ -72,7 +70,6 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [ghostMode, setGhostMode] = useState(false);
   const [presence, setPresence] = useState(0.8);
   const [symmetry, setSymmetry] = useState(1);
-  const [sessionMode, setSessionMode] = useState(false);
   const [sessionName, setSessionName] = useState('Projet Sans Titre');
   const [sessionId, setSessionId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -89,16 +86,20 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exitAnnouncement, setExitAnnouncement] = useState('');
+  const [toolMenu, setToolMenu] = useState(null);
+  const pressTimerRef = useRef(null);
+  const longPressTriggeredRef = useRef(false);
   const canvasWrapperRef = useRef(null);
   const ORBIT_TOOLS = [
-    { id: 'brush', icon: '🖌️' },
-    { id: 'watercolor', icon: '💧' },
-    { id: 'ink', icon: '🖋️' },
-    { id: 'particle-fill', icon: '✨' },
-    { id: 'emoji-stamp', icon: '😊' },
-    { id: 'text', icon: '🔤' },
-    { id: 'image-stamp', icon: '🖼️' },
-    { id: 'soft-eraser', icon: '🧽' },
+    { id: 'pencil', icon: '✏️', label: 'Crayon' },
+    { id: 'brush', icon: '🖌️', label: 'Pinceau' },
+    { id: 'watercolor', icon: '💧', label: 'Aquarelle' },
+    { id: 'ink', icon: '🖋️', label: 'Encre' },
+    { id: 'emoji-stamp', icon: '😊', label: 'Emoji' },
+    { id: 'text', icon: '🔤', label: 'Texte' },
+    { id: 'image-stamp', icon: '🖼️', label: 'Pastille' },
+    { id: 'eraser', icon: '🪣', label: 'Gomme' },
+    { id: 'soft-eraser', icon: '🧽', label: 'Gomme douce' },
   ];
 
   useEffect(() => {
@@ -184,13 +185,6 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
       setColor(sessionToLoad.strokes?.[0]?.color || '#1e293b');
     }
   }, [loadSessionData, sessionToLoad]);
-
-  const handleToggleSessionMode = useCallback(() => {
-    const next = !sessionMode;
-    setSessionMode(next);
-    toggleEngineSessionMode(next);
-    if (next) setSymmetry(1);
-  }, [sessionMode, toggleEngineSessionMode, setSymmetry]);
 
   const handleSave = useCallback(
     (name) => {
@@ -287,6 +281,51 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const handleZoomOut = () => setZoom((value) => Math.max(0.2, Number((value - 0.15).toFixed(2))));
   const handleZoomReset = () => setZoom(1);
 
+  const openToolMenu = useCallback((toolId, target) => {
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    setActiveTool(toolId);
+    setToolMenu({
+      toolId,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + window.scrollY,
+    });
+  }, []);
+
+  const cancelLongPress = useCallback(() => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  }, []);
+
+  const startLongPress = useCallback(
+    (toolId, target) => {
+      cancelLongPress();
+      longPressTriggeredRef.current = false;
+      pressTimerRef.current = window.setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        openToolMenu(toolId, target);
+        pressTimerRef.current = null;
+      }, 460);
+    },
+    [cancelLongPress, openToolMenu]
+  );
+
+  const handleToolTap = useCallback(
+    (toolId) => {
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        return;
+      }
+      setActiveTool(toolId);
+      setToolMenu(null);
+    },
+    []
+  );
+
+  const closeToolMenu = useCallback(() => setToolMenu(null), []);
+
   const enterImmersiveCanvas = useCallback(() => setIsImmersive(true), []);
   const exitImmersiveCanvas = useCallback(() => {
     setIsImmersive(false);
@@ -298,6 +337,18 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     const timeout = setTimeout(() => setExitAnnouncement(''), 3200);
     return () => clearTimeout(timeout);
   }, [exitAnnouncement]);
+
+  useEffect(() => () => cancelLongPress(), [cancelLongPress]);
+
+  useEffect(() => {
+    if (!toolMenu) return undefined;
+    const handleOutside = (event) => {
+      if (event.target.closest('.tool-context-menu') || event.target.closest('.bubble-tool')) return;
+      closeToolMenu();
+    };
+    window.addEventListener('pointerdown', handleOutside);
+    return () => window.removeEventListener('pointerdown', handleOutside);
+  }, [toolMenu, closeToolMenu]);
 
   useEffect(() => {
     const wrapper = canvasWrapperRef.current;
@@ -338,13 +389,11 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     onHeaderUpdate({
       sessionName: sessionMeta,
       onSaveSession: () => setShowSaveModal(true),
-      onToggleSessionMode: handleToggleSessionMode,
-      isSessionMode: sessionMode,
       onOpenGallery,
       onOpenLibrary,
     });
     return () => onHeaderUpdate(null);
-  }, [onHeaderUpdate, sessionMeta, handleToggleSessionMode, sessionMode, onOpenGallery, onOpenLibrary]);
+  }, [onHeaderUpdate, sessionMeta, onOpenGallery, onOpenLibrary]);
 
   return (
     <>
@@ -374,43 +423,133 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
             </div>
           </div>
 
-       <main className="canvas-viewport">
+          <main className="canvas-viewport">
+            <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
+              <div className="canvas-clip">
+                <canvas ref={loopRef} />
+                <canvas ref={drawingRef} />
+              </div>
 
-  <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
-    <div className="canvas-clip">
-      <canvas ref={loopRef} />
-      <canvas ref={drawingRef} />
-    </div>
+              <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
+            </div>
 
-    <OrbitingLoopIndicator
-      duration={duration}
-      speed={speed}
-      pingPong={pingPong}
-      paused={isPaused}
-    />
-  </div>
+            <div className="bubble-tools">
+              <div className="bubble-tool-group">
+                {ORBIT_TOOLS.map((tool) => (
+                  <button
+                    key={tool.id}
+                    className={`bubble-tool ${activeTool === tool.id ? 'active' : ''}`}
+                    onClick={() => handleToolTap(tool.id)}
+                    onPointerDown={(event) => startLongPress(tool.id, event.currentTarget)}
+                    onPointerUp={cancelLongPress}
+                    onPointerLeave={cancelLongPress}
+                    aria-label={tool.label}
+                  >
+                    {tool.icon}
+                  </button>
+                ))}
+              </div>
+              <p className="bubble-hint">Tap pour choisir · Appui long pour régler</p>
+            </div>
 
-  {/* ✅ ICI, hors du canvas */}
-  <div className="bubble-tools">
-    {ORBIT_TOOLS.map(tool => (
-      <button
-        key={tool.id}
-        className={`bubble-tool ${activeTool === tool.id ? 'active' : ''}`}
-        onClick={() => setActiveTool(tool.id)}
-        aria-label={tool.id}
-      >
-        {tool.icon}
-      </button>
-    ))}
-  </div>
+            {toolMenu && (
+              <div
+                className="tool-context-menu"
+                style={{ top: `${toolMenu.y + 10}px`, left: `${toolMenu.x}px` }}
+                role="dialog"
+                aria-label="Réglages de l'outil"
+              >
+                <div className="menu-head">
+                  <span className="badge">Réglages {ORBIT_TOOLS.find((tool) => tool.id === toolMenu.toolId)?.label || ''}</span>
+                  <button type="button" className="ghost pill" onClick={closeToolMenu}>
+                    Fermer
+                  </button>
+                </div>
 
-</main>
+                <div className="menu-section">
+                  <span className="pill subtle">Couleur</span>
+                  <div className="color-palette">
+                    {TOOL_COLORS.map((swatch) => (
+                      <button
+                        type="button"
+                        key={swatch}
+                        className={`color-dot ${color === swatch ? 'active' : ''}`}
+                        style={{ backgroundColor: swatch }}
+                        onClick={() => setColor(swatch)}
+                        aria-label={`Choisir ${swatch}`}
+                      />
+                    ))}
+                    <label className={`color-dot custom ${!isPresetColor(color) ? 'active' : ''}`} aria-label="Choisir une couleur personnalisée">
+                      <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+                      <span>+</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="menu-section">
+                  <div className="bubble-mini-slider">
+                    <span className="pill subtle">Taille</span>
+                    <input
+                      type="range"
+                      min="3"
+                      max="64"
+                      step="1"
+                      value={strokeSize}
+                      onChange={(e) => setStrokeSize(Number(e.target.value))}
+                      aria-label="Taille du tracé"
+                    />
+                    <span className="pill strong">{Math.round(strokeSize)}px</span>
+                  </div>
+                  <div className="bubble-mini-slider">
+                    <span className="pill subtle">Opacité</span>
+                    <input
+                      type="range"
+                      min="0.05"
+                      max="1"
+                      step="0.05"
+                      value={strokeOpacity}
+                      onChange={(e) => setStrokeOpacity(Number(e.target.value))}
+                      aria-label="Opacité du tracé"
+                    />
+                    <span className="pill strong">{Math.round(strokeOpacity * 100)}%</span>
+                  </div>
+                </div>
+
+                {toolMenu.toolId === 'emoji-stamp' && (
+                  <div className="menu-section">
+                    <span className="pill subtle">Emoji</span>
+                    <div className="emoji-grid">
+                      {['✨', '🌿', '🔥', '🌊', '💫', '🎈', '🫧', '⭐️'].map((item) => (
+                        <button key={item} className={`ghost ${emoji === item ? 'active' : ''}`} onClick={() => setEmoji(item)}>
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {toolMenu.toolId === 'image-stamp' && (
+                  <div className="menu-section menu-row">
+                    <button className={`ghost ${stampOutline ? 'active' : ''}`} onClick={() => setStampOutline((v) => !v)} aria-pressed={stampOutline}>
+                      Contour
+                    </button>
+                    <label className="small-button" style={{ cursor: 'pointer', display: 'inline-flex', gap: '0.35rem', alignItems: 'center' }}>
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" />
+                        <path d="m7 15 3-3 2 2 3-4 2 3" />
+                      </svg>
+                      Importer
+                      <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && setEngineStampImage(e.target.files[0])} className="hidden" />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
         </div>
 
         {!isImmersive && (
           <ControlPanel
-            color={color}
-            onColorChange={setColor}
             duration={duration}
             onDurationChange={setDuration}
             speed={speed}
@@ -427,26 +566,13 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
             symmetry={symmetry}
             onClear={handleClear}
             onExport={() => setShowExportModal(true)}
-            onToolChange={setActiveTool}
-            activeTool={activeTool}
             onAudioFile={handleLoadAudio}
             onToggleAudio={handleToggleAudio}
             isPlaying={isPlaying}
             intensity={intensity}
             onIntensityChange={setIntensity}
-            onToggleSessionMode={handleToggleSessionMode}
-            isSessionMode={sessionMode}
             onToggleDemoAudio={handleToggleDemoAudio}
             isDemoAudioEnabled={useDemoAudio}
-            strokeSize={strokeSize}
-            onStrokeSizeChange={setStrokeSize}
-            strokeOpacity={strokeOpacity}
-            onStrokeOpacityChange={setStrokeOpacity}
-            emoji={emoji}
-            onEmojiChange={setEmoji}
-            onStampImage={setEngineStampImage}
-            stampOutline={stampOutline}
-            onStampOutlineChange={setStampOutline}
           />
         )}
 
