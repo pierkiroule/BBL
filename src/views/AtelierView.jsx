@@ -527,7 +527,8 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
           <div className="canvas-toolbar glass-panel">
             <div className="canvas-hints">
               <span className="badge">Geste libre</span>
-              <p className="muted">Zoom</div>
+              <p className="muted">Zoom</p>
+            </div>
             <div className="canvas-toolbar-actions">
               <div className="zoom-controls" role="group" aria-label="Zoom sur le canevas">
                 <button type="button" className="ghost" onClick={handleZoomOut} aria-label="Zoom arrière" disabled={zoom <= 0.21}>
