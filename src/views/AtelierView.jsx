@@ -419,6 +419,107 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     return () => onHeaderUpdate(null);
   }, [onHeaderUpdate, sessionMeta, onOpenGallery, onOpenLibrary]);
 
+  const getToolIcon = (id) => {
+    switch (id) {
+      case 'pencil':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 21l3-1 11-11 1-3-3 1L4 20z" />
+            <path d="M14 7l3 3" />
+          </svg>
+        );
+      case 'brush':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 22s4-1 6-4 4-6 4-6 2 4-2 8-8 2-8 2z" />
+            <path d="M14 7l7-7" />
+          </svg>
+        );
+      case 'watercolor':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C8 7 6 9 6 12a6 6 0 0012 0c0-3-2-5-6-10z" />
+          </svg>
+        );
+      case 'ink':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2v6l-5 5-3 1 1-3 5-5h4z" />
+          </svg>
+        );
+      case 'emoji-stamp':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 17.3L18.2 21 16.6 15 22 11l-6.2-.5L12 2 8.2 10.5 2 11l5.4 4L5.8 21z" />
+          </svg>
+        );
+      case 'text':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 4h12" />
+            <path d="M12 4v16" />
+          </svg>
+        );
+      case 'image-stamp':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="14" rx="2" />
+            <path d="M3 17l4-4 5 5 4-6 5 6" />
+          </svg>
+        );
+      case 'eraser':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 3l5 5-9 9-7-7 11-7z" />
+          </svg>
+        );
+      case 'soft-eraser':
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 3l5 5-9 9-7-7 11-7z" opacity="0.6" />
+          </svg>
+        );
+      default:
+        return (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        );
+    }
+  };
+
+  function ToolButton({ tool, idx, active, onTap, onStartLong, onCancelPointer }) {
+    return (
+      <button
+        type="button"
+        title={`${tool.label} (${idx + 1})`}
+        className={`bubble-tool ${active ? 'active' : ''}`}
+        onClick={() => onTap(tool.id)}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          onStartLong(tool.id, event.currentTarget);
+        }}
+        onPointerUp={(event) => {
+          onCancelPointer();
+          event.currentTarget.releasePointerCapture?.(event.pointerId);
+        }}
+        onPointerCancel={(event) => {
+          onCancelPointer();
+          event.currentTarget.releasePointerCapture?.(event.pointerId);
+        }}
+        onPointerLeave={(event) => {
+          onCancelPointer();
+          event.currentTarget.releasePointerCapture?.(event.pointerId);
+        }}
+        aria-label={tool.label}
+        aria-pressed={active}
+      >
+        <span className="bubble-tool-icon" aria-hidden>{getToolIcon(tool.id)}</span>
+        <span className="bubble-tool-label">{tool.label}</span>
+      </button>
+    );
+  }
+
   return (
     <>
       <section className={`view-content atelier-view ${isImmersive ? 'immersive' : ''}`} style={{ flex: 1 }}>
@@ -457,106 +558,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
               <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
             </div>
 
-            function getToolIcon(id) {
-              switch (id) {
-                case 'pencil':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 21l3-1 11-11 1-3-3 1L4 20z" />
-                      <path d="M14 7l3 3" />
-                    </svg>
-                  );
-                case 'brush':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 22s4-1 6-4 4-6 4-6 2 4-2 8-8 2-8 2z" />
-                      <path d="M14 7l7-7" />
-                    </svg>
-                  );
-                case 'watercolor':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2C8 7 6 9 6 12a6 6 0 0012 0c0-3-2-5-6-10z" />
-                    </svg>
-                  );
-                case 'ink':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2v6l-5 5-3 1 1-3 5-5h4z" />
-                    </svg>
-                  );
-                case 'emoji-stamp':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 17.3L18.2 21 16.6 15 22 11l-6.2-.5L12 2 8.2 10.5 2 11l5.4 4L5.8 21z" />
-                    </svg>
-                  );
-                case 'text':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 4h12" />
-                      <path d="M12 4v16" />
-                    </svg>
-                  );
-                case 'image-stamp':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="14" rx="2" />
-                      <path d="M3 17l4-4 5 5 4-6 5 6" />
-                    </svg>
-                  );
-                case 'eraser':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 3l5 5-9 9-7-7 11-7z" />
-                    </svg>
-                  );
-                case 'soft-eraser':
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 3l5 5-9 9-7-7 11-7z" opacity="0.6" />
-                    </svg>
-                  );
-                default:
-                  return (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="8" />
-                    </svg>
-                  );
-              }
-            }
-
-            function ToolButton({ tool, idx, active, onTap, onStartLong, onCancelPointer }) {
-              return (
-                <button
-                  type="button"
-                  title={`${tool.label} (${idx + 1})`}
-                  className={`bubble-tool ${active ? 'active' : ''}`}
-                  onClick={() => onTap(tool.id)}
-                  onPointerDown={(event) => {
-                    event.currentTarget.setPointerCapture?.(event.pointerId);
-                    onStartLong(tool.id, event.currentTarget);
-                  }}
-                  onPointerUp={(event) => {
-                    onCancelPointer();
-                    event.currentTarget.releasePointerCapture?.(event.pointerId);
-                  }}
-                  onPointerCancel={(event) => {
-                    onCancelPointer();
-                    event.currentTarget.releasePointerCapture?.(event.pointerId);
-                  }}
-                  onPointerLeave={(event) => {
-                    onCancelPointer();
-                    event.currentTarget.releasePointerCapture?.(event.pointerId);
-                  }}
-                  aria-label={tool.label}
-                  aria-pressed={active}
-                >
-                  <span className="bubble-tool-icon" aria-hidden>{getToolIcon(tool.id)}</span>
-                  <span className="bubble-tool-label">{tool.label}</span>
-                </button>
-              );
-            }
+            {/* helper functions moved above return */}
 
             <div className="bubble-tools">
               <div className="bubble-tool-group">
