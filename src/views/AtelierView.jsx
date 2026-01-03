@@ -3,11 +3,17 @@ import ControlPanel from '../components/ControlPanel.jsx';
 import { useBubbleEngine } from '../canvas/useBubbleEngine.js';
 import { saveSessionData } from '../store/useSessionStore.js';
 import { useBubbleLoops } from '../hooks/useBubbleLoops.js';
-import OrbitingLoopIndicator from '../components/OrbitingLoopIndicator.jsx';
+
+import TimelineIndicator from '../components/TimelineIndicator.jsx';
 import SaveSessionModal from '../components/SaveSessionModal.jsx';
 import ExportBubbleLoopModal from '../components/ExportBubbleLoopModal.jsx';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
 import { TOOL_COLORS, isPresetColor } from '../utils/palette.js';
+import useLoopProgress from '../hooks/useLoopProgress';
+
+
+
+
 
 function defaultSizeForTool(tool) {
   switch (tool) {
@@ -31,35 +37,42 @@ function defaultSizeForTool(tool) {
 }
 
 export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsChange, onOpenGallery, onHeaderUpdate }) {
-  const {
-    drawingRef,
-    loopRef,
-    start,
-    stop,
-    setTool,
-    setColor: setEngineColor,
-    setStrokeSize: setEngineStrokeSize,
-    setStrokeOpacity: setEngineStrokeOpacity,
-    setEmoji: setEngineEmoji,
-    setStampOutline: setEngineStampOutline,
-    setStampImage: setEngineStampImage,
-    setDuration: setEngineDuration,
-    setSpeed: setEngineSpeed,
-    setPause: setEnginePause,
-    setPingPong: setEnginePingPong,
-    setPresence: setEnginePresence,
-    toggleGhost,
-    setSymmetry: setEngineSymmetry,
-    exportVideo,
-    setZoom: setEngineZoom,
-    setIntensity: setEngineIntensity,
-    setAudioFile,
-    toggleAudio,
-    setDemoAudio,
-    clear,
-    getSessionData,
-    loadSessionData,
-  } = useBubbleEngine();
+const {
+  drawingRef,
+  loopRef,
+  start,
+  stop,
+
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+
+  setTool,
+  setColor: setEngineColor,
+  setStrokeSize: setEngineStrokeSize,
+  setStrokeOpacity: setEngineStrokeOpacity,
+  setEmoji: setEngineEmoji,
+  setStampOutline: setEngineStampOutline,
+  setStampImage: setEngineStampImage,
+  setDuration: setEngineDuration,
+  setSpeed: setEngineSpeed,
+  setPause: setEnginePause,
+  setPingPong: setEnginePingPong,
+  setPresence: setEnginePresence,
+  toggleGhost,
+  setSymmetry: setEngineSymmetry,
+  exportVideo,
+  setZoom: setEngineZoom,
+  setIntensity: setEngineIntensity,
+  setAudioFile,
+
+  toggleAudio,
+  setDemoAudio,
+  clear,
+  getSessionData,
+  loadSessionData,
+} = useBubbleEngine();
   const { addBubbleLoop } = useBubbleLoops();
   const [activeTool, setActiveTool] = useState('pencil');
   const [color, setColor] = useState('#1e293b');
@@ -67,6 +80,7 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const [speed, setSpeed] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
   const [pingPong, setPingPong] = useState(false);
+  
   const [ghostMode, setGhostMode] = useState(false);
   const [presence, setPresence] = useState(0.8);
   const [symmetry, setSymmetry] = useState(1);
@@ -90,6 +104,11 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const pressTimerRef = useRef(null);
   const longPressTriggeredRef = useRef(false);
   const canvasWrapperRef = useRef(null);
+  const progress = useLoopProgress({
+  duration,
+  paused: isPaused,
+
+});
   const ORBIT_TOOLS = [
     { id: 'pencil', icon: '✏️', label: 'Crayon' },
     { id: 'brush', icon: '🖌️', label: 'Pinceau' },
@@ -282,15 +301,32 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
   const handleZoomReset = () => setZoom(1);
 
   const openToolMenu = useCallback((toolId, target) => {
-    if (!target) return;
-    const rect = target.getBoundingClientRect();
-    setActiveTool(toolId);
-    setToolMenu({
-      toolId,
-      x: rect.left + rect.width / 2,
-      y: rect.bottom + window.scrollY,
-    });
-  }, []);
+  if (!target) return;
+
+  const rect = target.getBoundingClientRect();
+  const MENU_WIDTH = 280;
+  const MENU_MARGIN = 12;
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let x = rect.left + rect.width / 2 - MENU_WIDTH / 2;
+  x = Math.max(MENU_MARGIN, Math.min(x, viewportWidth - MENU_WIDTH - MENU_MARGIN));
+
+  let y = rect.bottom + 10;
+
+  // Si le menu sort en bas → on le met au-dessus
+  if (rect.bottom + 260 > viewportHeight) {
+    y = rect.top - 260;
+  }
+
+  setActiveTool(toolId);
+  setToolMenu({
+    toolId,
+    x,
+    y: Math.max(MENU_MARGIN, y),
+  });
+}, []);
 
   const cancelLongPress = useCallback(() => {
     if (pressTimerRef.current) {
@@ -524,58 +560,128 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     <>
       <section className={`view-content atelier-view ${isImmersive ? 'immersive' : ''}`} style={{ flex: 1 }}>
         <div className="canvas-stage">
-          <div className="canvas-toolbar glass-panel">
-            <div className="canvas-hints">
-              <span className="badge">Geste libre</span>
-              <p className="muted">Zoom</p>
-            </div>
-            <div className="canvas-toolbar-actions">
-              <div className="zoom-controls" role="group" aria-label="Zoom sur le canevas">
-                <button type="button" className="ghost" onClick={handleZoomOut} aria-label="Zoom arrière" disabled={zoom <= 0.21}>
-                  −
-                </button>
-                <span className="zoom-level" aria-live="polite">{Math.round(zoom * 100)}%</span>
-                <button type="button" className="ghost" onClick={handleZoomIn} aria-label="Zoom avant" disabled={zoom >= 5.95}>
-                  +
-                </button>
-                <button type="button" className="ghost subtle" onClick={handleZoomReset} aria-label="Réinitialiser le zoom">
-                  1x
-                </button>
-              </div>
-              <button className="ghost" onClick={enterImmersiveCanvas} aria-pressed={isImmersive}>
-                Canvas seul
-              </button>
-            </div>
-          </div>
+         <div className="canvas-toolbar glass-panel">
+  {/* LEFT — UNDO / REDO */}
+  <div className="toolbar-left" role="group" aria-label="Historique">
+    <button
+      type="button"
+      className="ghost"
+      onClick={undo}
+      disabled={!canUndo()}
+      aria-label="Annuler (Ctrl+Z)"
+    >
+      ↶
+    </button>
+    <button
+      type="button"
+      className="ghost"
+      onClick={redo}
+      disabled={!canRedo()}
+      aria-label="Rétablir (Ctrl+Shift+Z)"
+    >
+      ↷
+    </button>
+  </div>
 
-          <main className="canvas-viewport">
-            <div className="canvas-wrapper" id="canvas-outer" ref={canvasWrapperRef}>
-              <div className="canvas-clip">
-                <canvas ref={loopRef} />
-                <canvas ref={drawingRef} />
-              </div>
+  {/* CENTER — HINTS */}
+  <div className="toolbar-center canvas-hints">
+    <span className="badge">Geste libre</span>
+    <span className="muted">Zoom</span>
+  </div>
 
-              <OrbitingLoopIndicator duration={duration} speed={speed} pingPong={pingPong} paused={isPaused} />
-            </div>
+  {/* RIGHT — ACTIONS */}
+  <div className="toolbar-right canvas-toolbar-actions">
+    <div className="zoom-controls" role="group" aria-label="Zoom">
+      <button
+        type="button"
+        className="ghost"
+        onClick={handleZoomOut}
+        disabled={zoom <= 0.21}
+      >
+        −
+      </button>
 
-            {/* helper functions moved above return */}
+      <span className="zoom-level">{Math.round(zoom * 100)}%</span>
 
-            <div className="bubble-tools">
-              <div className="bubble-tool-group">
-                {ORBIT_TOOLS.map((tool, idx) => (
-                  <ToolButton
-                    key={tool.id}
-                    tool={tool}
-                    idx={idx}
-                    active={activeTool === tool.id}
-                    onTap={(id) => { setActiveTool(id); setToolMenu(null); }}
-                    onStartLong={(id, target) => startLongPress(id, target)}
-                    onCancelPointer={() => cancelLongPress()}
-                  />
-                ))}
-              </div>
-              <p className="bubble-hint">Tap pour choisir · Appui long pour régler · Raccourcis: 1–9</p>
-            </div>
+      <button
+        type="button"
+        className="ghost"
+        onClick={handleZoomIn}
+        disabled={zoom >= 5.95}
+      >
+        +
+      </button>
+
+      <button
+        type="button"
+        className="ghost subtle"
+        onClick={handleZoomReset}
+      >
+        1x
+      </button>
+    </div>
+
+    <button
+      className="ghost"
+      onClick={enterImmersiveCanvas}
+      aria-pressed={isImmersive}
+    >
+      full
+    </button>
+  </div>
+</div>
+
+ <main className="canvas-viewport">
+<TimelineIndicator
+  progress={progress}
+  paused={isPaused}
+  speed={speed}
+  mode={pingPong ? 'pingpong' : 'loop'}
+  onTogglePause={() => setIsPaused(v => !v)}
+  onModeChange={(m) => setPingPong(m === 'pingpong')}
+  onSpeedChange={setSpeed}
+  onSeek={(p) => {
+    // optionnel : plus tard (seek moteur)
+    // setManualProgress(p)
+  }}
+/>
+
+
+  <div className="canvas-wrapper" ref={canvasWrapperRef}>
+    <div className="canvas-clip">
+      <canvas ref={loopRef} />
+      <canvas ref={drawingRef} />
+    </div>
+  </div>
+
+
+
+  <div className="bubble-tools">
+    <div className="bubble-tool-group">
+      {ORBIT_TOOLS.map((tool, idx) => (
+        <ToolButton
+          key={tool.id}
+          tool={tool}
+          idx={idx}
+          active={activeTool === tool.id}
+          onTap={(id) => {
+            if (longPressTriggeredRef.current) {
+              longPressTriggeredRef.current = false;
+              return;
+            }
+            setActiveTool(id);
+            setToolMenu(null);
+          }}
+          onStartLong={(id, target) => startLongPress(id, target)}
+          onCancelPointer={() => cancelLongPress()}
+        />
+      ))}
+    </div>
+    <p className="bubble-hint">Tap pour choisir · Appui long pour régler · Raccourcis: 1–9</p>
+  </div>
+
+  
+  
 
             {toolMenu && (
               <div

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import BubbleLoopLogo from './BubbleLoopLogo.jsx';
 
 export default function Header({
@@ -6,13 +6,13 @@ export default function Header({
   sessionName,
   onOpenLibrary,
   onSaveSession,
+  onToggleSessionMode,
+  isSessionMode,
   onNavigateHome,
   onNavigateAtelier,
   onNavigateGallery,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const actionsMenuId = useId();
 
   const navItems = useMemo(
     () => [
@@ -28,14 +28,8 @@ export default function Header({
     setMenuOpen(false);
   };
 
-  const handleAction = (onClick) => () => {
-    if (onClick) onClick();
-    setActionsOpen(false);
-  };
-
   useEffect(() => {
     setMenuOpen(false);
-    setActionsOpen(false);
   }, [activeView]);
 
   return (
@@ -44,7 +38,7 @@ export default function Header({
         <BubbleLoopLogo size={54} showLabel={false} />
         <div className="flex flex-col">
           <h1 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic' }}>
-           Bubble Loop <span style={{ color: 'var(--primary)' }}> #BbL</span>
+           Bubble Loop <span style={{ color: 'var(--primary)' }}> #BBL</span>
           </h1>
           {sessionName && (
             <span className="badge" style={{ marginTop: '0.15rem', maxWidth: '180px' }} title={sessionName}>
@@ -77,27 +71,26 @@ export default function Header({
         ))}
       </nav>
 
-      <button
-        type="button"
-        className="actions-toggle"
-        aria-expanded={actionsOpen}
-        aria-controls={actionsMenuId}
-        onClick={() => setActionsOpen((v) => !v)}
-      >
-        ⚡ Actions rapides
-      </button>
-
-      <div className={`header-actions ${actionsOpen ? 'open' : ''}`} id={actionsMenuId}>
+      <div className="header-actions">
         {onOpenLibrary && (
-          <button onClick={handleAction(onOpenLibrary)} className="small-button" aria-label="Ouvrir les archives">
+          <button onClick={onOpenLibrary} className="small-button" aria-label="Ouvrir les archives">
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
               <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           </button>
         )}
         {onSaveSession && (
-          <button onClick={handleAction(onSaveSession)} className="button-primary" aria-label="Sauvegarder la session">
+          <button onClick={onSaveSession} className="button-primary" aria-label="Sauvegarder la session">
             Sauvegarder
+          </button>
+        )}
+        {onToggleSessionMode && (
+          <button
+            onClick={onToggleSessionMode}
+            className={`button-secondary ${isSessionMode ? 'active' : ''}`}
+            aria-pressed={isSessionMode}
+          >
+            Séance
           </button>
         )}
       </div>

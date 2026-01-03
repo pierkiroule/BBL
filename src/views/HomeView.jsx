@@ -43,7 +43,7 @@ export default function HomeView({ onStart, onOpenLibrary, onOpenGallery }) {
           </div>
           <div>
             <h1 className="home-title">
-              #BBL <span className="home-title-highlight">BubbleLoop</span>
+              <span className="home-title-highlight">BubbleLoop•°</span>
             </h1>
             <p className="home-subtitle">
               Dessinez en harmonie. Vos traits s'animent en boucle au rythme de la musique.
