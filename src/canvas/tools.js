@@ -6,6 +6,11 @@ import {
 
 /* ---------------- utils ---------------- */
 
+// Audio-reactive renderers
+// The renderers below consume an `env` parameter with `resonance: { bass, mid, treble }` and
+// `alpha` (global presence). These are computed in `useBubbleEngine.js` from an AnalyserNode.
+// Effects are intentionally subtle to remain harmonious; sensitivity is exposed in the UI.
+
 function relevantPoints(points = [], timeLimit) {
   if (typeof timeLimit !== 'number') return points;
   return points.filter(p => p.t <= timeLimit);
@@ -43,6 +48,7 @@ function drawBasicStroke(
   ctx.lineWidth = size;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  ctx.globalAlpha = alpha;
   ctx.globalCompositeOperation = compositeOperation;
   ctx.shadowBlur = shadowBlur;
   ctx.shadowColor = shadowColor || color;
@@ -212,7 +218,7 @@ export const TOOL_RENDERERS = {
   pencil: (ctx, stroke, pts, env) =>
     drawBasicStroke(ctx, pts, {
       color: stroke.color,
-      size: stroke.size,
+      size: Math.max(1, stroke.size * mod),
       jitter: 1 + env.resonance.treble * 4,
       rand: createSeededRandom(stroke.seed || 1)
     }),
@@ -220,7 +226,7 @@ export const TOOL_RENDERERS = {
   brush: (ctx, stroke, pts, env) =>
     drawBasicStroke(ctx, pts, {
       color: stroke.color,
-      size: stroke.size + env.resonance.bass * 20,
+      size,
       jitter: env.resonance.treble * 4,
       shadowBlur: stroke.size / 2 + env.resonance.treble * 25,
       shadowColor: stroke.color,
