@@ -120,13 +120,14 @@ for (let s = 0; s < symmetry; s += 1) {
   const renderer =
   TOOL_RENDERERS[stroke.tool] || TOOL_RENDERERS.pencil;
 
-  // ❌ plus de alpha dans env
+  // ✅ Fournir `alpha` (opacité calculée) aux renderers
   renderer(ctx, stroke, pts, {
     timeLimit,
     resonance: res,
+    alpha: opacity,
     duration: loopDuration ?? displaySize,
     presence,
-});
+  });
 
 ctx.restore();
 }
@@ -341,6 +342,7 @@ finalizeStroke]);
 
 const handlePointerDown = useCallback(
 (event) => {
+console.debug && console.debug('pointerdown', { pointerId: event.pointerId, type: event.type, isPrimary: event.isPrimary });
 event.preventDefault();
 const canvas = drawingRef.current;
 if (!canvas) return;
@@ -381,9 +383,11 @@ rotation: Math.random() * 0.4 - 0.2,
 currentStrokeRef.current = stroke;
 const isStamp = isStampTool(tool);
 isDrawingRef.current = !isStamp;
+console.debug && console.debug('start stroke', { tool, isStamp, isDrawing: isDrawingRef.current, stroke });
 if (isStamp) {
 const ready = finalizeStroke(stroke);
 appendStroke(ready);
+console.debug && console.debug('stamp appended', ready);
 currentStrokeRef.current = null;
 }
 },
