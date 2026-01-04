@@ -120,13 +120,14 @@ for (let s = 0; s < symmetry; s += 1) {
   const renderer =
   TOOL_RENDERERS[stroke.tool] || TOOL_RENDERERS.pencil;
 
-  // ❌ plus de alpha dans env
+  // ✅ Fournir `alpha` (opacité calculée) aux renderers
   renderer(ctx, stroke, pts, {
     timeLimit,
     resonance: res,
+    alpha: opacity,
     duration: loopDuration ?? displaySize,
     presence,
-});
+  });
 
 ctx.restore();
 }
@@ -275,6 +276,7 @@ const appendStroke = useCallback((stroke) => {
   if (!stroke) return;
 
   if (stroke.tool === 'eraser') {
+    console.debug && console.debug('[useBubbleEngine] appendStroke: applying eraser', { size: stroke.size, points: stroke.points?.length });
     strokesRef.current = eraseHard(
       strokesRef.current,
       stroke
@@ -283,7 +285,9 @@ const appendStroke = useCallback((stroke) => {
     return;
   }
 
+  console.debug && console.debug('[useBubbleEngine] appendStroke: push stroke', { tool: stroke.tool, points: stroke.points?.length });
   strokesRef.current.push(stroke);
+  try { window.__bbl_lastStroke = { count: strokesRef.current.length, lastTool: stroke.tool }; } catch (e) { /* ignore */ }
   undoStackRef.current = [];
 }, []);
 
@@ -341,12 +345,14 @@ finalizeStroke]);
 
 const handlePointerDown = useCallback(
 (event) => {
+console.debug && console.debug('pointerdown', { pointerId: event.pointerId, type: event.type, isPrimary: event.isPrimary });
 event.preventDefault();
 const canvas = drawingRef.current;
 if (!canvas) return;
 const info = screenToWorld(canvas, event, cameraRef.current);
 if (!info) return;
 lastPointerRef.current = info;
+try { window.__bbl_lastPointer = { type: 'down', info }; } catch (e) { /* ignore */ }
 const isMultiTouch = event.touches && event.touches.length > 1;
 const isPanGesture = panKeyRef.current || isMultiTouch || event.button === 1 || event.button === 2;
 if (isPanGesture) {
@@ -381,9 +387,11 @@ rotation: Math.random() * 0.4 - 0.2,
 currentStrokeRef.current = stroke;
 const isStamp = isStampTool(tool);
 isDrawingRef.current = !isStamp;
+console.debug && console.debug('start stroke', { tool, isStamp, isDrawing: isDrawingRef.current, stroke });
 if (isStamp) {
 const ready = finalizeStroke(stroke);
 appendStroke(ready);
+console.debug && console.debug('stamp appended', ready);
 currentStrokeRef.current = null;
 }
 },
@@ -404,18 +412,19 @@ stopDrawing();
 return;
 }
 lastPointerRef.current = info;
+    try { window.__bbl_lastPointer = { type: 'move', info }; } catch (e) { /* ignore */ }
 
-if (panStateRef.current.active) {
-const dx = info.screen.x - panStateRef.current.lastX;
-const dy = info.screen.y - panStateRef.current.lastY;
-panStateRef.current.lastX = info.screen.x;
-panStateRef.current.lastY = info.screen.y;
-cameraRef.current.x -= dx / cameraRef.current.zoom;
-cameraRef.current.y -= dy / cameraRef.current.zoom;
-return;
-}
+    if (panStateRef.current.active) {
+      const dx = info.screen.x - panStateRef.current.lastX;
+      const dy = info.screen.y - panStateRef.current.lastY;
+      panStateRef.current.lastX = info.screen.x;
+      panStateRef.current.lastY = info.screen.y;
+      cameraRef.current.x -= dx / cameraRef.current.zoom;
+      cameraRef.current.y -= dy / cameraRef.current.zoom;
+      return;
+    }
 
-if (!isDrawingRef.current) return;
+    if (!isDrawingRef.current) return;
 const pos = info.world;
 const {
 time: currentTime
@@ -460,15 +469,17 @@ stopDrawing]
 );
 
 const handlePointerUp = useCallback(() => {
-if (panStateRef.current.active) {
-panStateRef.current = {
-active: false,
-lastX: 0,
-lastY: 0
-};
-return;
-}
-stopDrawing();
+  console.debug && console.debug('[useBubbleEngine] pointerup');
+  try { window.__bbl_lastPointer = { type: 'up' }; } catch (e) { /* ignore */ }
+  if (panStateRef.current.active) {
+    panStateRef.current = {
+      active: false,
+      lastX: 0,
+      lastY: 0
+    };
+    return;
+  }
+  stopDrawing();
 },
 [stopDrawing]);
 
