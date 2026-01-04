@@ -1,5 +1,10 @@
 import { cloneSeeded, createSeededRandom, jitterAround, pickInRange } from '../utils/random.js';
 
+// Audio-reactive renderers
+// The renderers below consume an `env` parameter with `resonance: { bass, mid, treble }` and
+// `alpha` (global presence). These are computed in `useBubbleEngine.js` from an AnalyserNode.
+// Effects are intentionally subtle to remain harmonious; sensitivity is exposed in the UI.
+
 function relevantPoints(points = [], timeLimit) {
   if (typeof timeLimit !== 'number') return points;
   return points.filter((p) => p.t <= timeLimit);
@@ -14,7 +19,7 @@ function velocityAt(points, index) {
   return dist / dt;
 }
 
-function drawBasicStroke(ctx, points, { color, size, jitter = 0, shadowBlur = 0, shadowColor, compositeOperation = 'source-over' }) {
+function drawBasicStroke(ctx, points, { color, size, jitter = 0, shadowBlur = 0, shadowColor, compositeOperation = 'source-over', alpha = 1 }) {
   if (!points.length) return;
   ctx.save();
   ctx.beginPath();
@@ -22,6 +27,7 @@ function drawBasicStroke(ctx, points, { color, size, jitter = 0, shadowBlur = 0,
   ctx.lineWidth = size;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  ctx.globalAlpha = alpha;
   ctx.globalCompositeOperation = compositeOperation;
   ctx.shadowBlur = shadowBlur;
   ctx.shadowColor = shadowColor || color;
@@ -64,7 +70,7 @@ function renderWatercolor(ctx, stroke, points, env) {
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = stroke.color;
-      ctx.globalAlpha = (alphaBase + rand() * 0.05) * env.alpha;
+      ctx.globalAlpha = (alphaBase + rand() * 0.05) * env.alpha * (1 + env.resonance.mid * 0.12);
       ctx.beginPath();
       ctx.ellipse(dx, dy, radius, radius * pickInRange(rand, 0.6, 1.4), rand() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
@@ -79,7 +85,7 @@ function renderInk(ctx, stroke, points, env) {
   const mainWidth = stroke.size * 1.05;
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = env.alpha * 0.92;
+  ctx.globalAlpha = env.alpha * Math.min(1, 0.92 + env.resonance.mid * 0.18);
   ctx.strokeStyle = stroke.color;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -93,7 +99,7 @@ function renderInk(ctx, stroke, points, env) {
   });
   ctx.stroke();
 
-  ctx.globalAlpha = env.alpha * 0.55;
+  ctx.globalAlpha = env.alpha * Math.min(1, 0.55 + env.resonance.mid * 0.12);
   for (let layer = 0; layer < 2; layer += 1) {
     ctx.beginPath();
     points.forEach((p, i) => {
@@ -132,7 +138,7 @@ function renderParticles(ctx, stroke, env) {
     const px = particle.cx + Math.cos(phase) * particle.orbit * breathing;
     const py = particle.cy + Math.sin(phase * 1.05) * particle.orbit * breathing;
     ctx.beginPath();
-    ctx.globalAlpha = env.alpha * particle.alpha;
+    ctx.globalAlpha = env.alpha * particle.alpha * (1 + env.resonance.bass * 0.6);
     ctx.fillStyle = stroke.color;
     ctx.arc(px, py, particle.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -144,12 +150,13 @@ function renderEmoji(ctx, stroke, points, env) {
   points.forEach((p) => {
     ctx.save();
     ctx.translate(p.x, p.y);
-    const angle = (stroke.rotation || 0) + Math.sin(env.timeLimit * 0.002 + p.t * 0.01) * 0.03;
+    const angle = (stroke.rotation || 0) + Math.sin(env.timeLimit * 0.002 + p.t * 0.01) * (0.03 + env.resonance.treble * 0.08);
     ctx.rotate(angle);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `${Math.max(12, stroke.size * 2.4)}px system-ui, Apple Color Emoji, Noto Color Emoji, sans-serif`;
-    ctx.globalAlpha = env.alpha;
+    const scale = 1 + env.resonance.treble * 0.22;
+    ctx.font = `${Math.max(12, stroke.size * 2.4 * scale)}px system-ui, Apple Color Emoji, Noto Color Emoji, sans-serif`;
+    ctx.globalAlpha = Math.min(1, env.alpha * (1 + env.resonance.treble * 0.12));
     ctx.fillText(stroke.emoji || '✨', 0, 0);
     ctx.restore();
   });
@@ -157,7 +164,7 @@ function renderEmoji(ctx, stroke, points, env) {
 
 function renderText(ctx, stroke, points, env) {
   if (!stroke.text) return;
-  const fontSize = Math.max(14, stroke.size * 2.2);
+  const fontSize = Math.max(14, stroke.size * 2.2 * (1 + env.resonance.treble * 0.18));
   points.forEach((p) => {
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -165,7 +172,7 @@ function renderText(ctx, stroke, points, env) {
     ctx.textBaseline = 'middle';
     ctx.font = `${fontSize}px 'Inter', 'Helvetica Neue', sans-serif`;
     ctx.fillStyle = stroke.color;
-    ctx.globalAlpha = env.alpha;
+    ctx.globalAlpha = Math.min(1, env.alpha * (1 + env.resonance.treble * 0.12));
     ctx.fillText(stroke.text, 0, 0);
     ctx.restore();
   });
@@ -173,7 +180,7 @@ function renderText(ctx, stroke, points, env) {
 
 function renderImageStamp(ctx, stroke, points, env) {
   if (!stroke.image || !stroke.image.complete) return;
-  const r = stroke.size * 1.6;
+  const r = stroke.size * 1.6 * (1 + env.resonance.bass * 0.12);
   points.forEach((p) => {
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -181,7 +188,7 @@ function renderImageStamp(ctx, stroke, points, env) {
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.clip();
-    ctx.globalAlpha = env.alpha;
+    ctx.globalAlpha = Math.min(1, env.alpha * (1 + env.resonance.bass * 0.12));
     ctx.drawImage(stroke.image, -r, -r, r * 2, r * 2);
     ctx.restore();
 
@@ -191,7 +198,7 @@ function renderImageStamp(ctx, stroke, points, env) {
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.lineWidth = Math.max(1, stroke.size * 0.2);
       ctx.strokeStyle = stroke.color;
-      ctx.globalAlpha = env.alpha * 0.9;
+      ctx.globalAlpha = Math.min(1, env.alpha * 0.9 * (1 + env.resonance.bass * 0.12));
       ctx.stroke();
       ctx.restore();
     }
@@ -227,20 +234,24 @@ function renderEraser(ctx, stroke, points, env) {
 
 export const TOOL_RENDERERS = {
   pencil: (ctx, stroke, pts, env) => {
+    const mod = 1 + (env.resonance.mid * 0.08) + (env.resonance.treble * 0.05);
     drawBasicStroke(ctx, pts, {
       color: stroke.color,
-      size: stroke.size,
+      size: Math.max(1, stroke.size * mod),
       jitter: 1 + env.resonance.treble * 4,
       compositeOperation: 'source-over',
+      alpha: Math.min(1, env.alpha * (1 + env.resonance.treble * 0.15)),
     });
   },
   brush: (ctx, stroke, pts, env) => {
+    const size = Math.max(1, stroke.size + env.resonance.bass * 20);
     drawBasicStroke(ctx, pts, {
       color: stroke.color,
-      size: stroke.size + env.resonance.bass * 20,
+      size,
       jitter: env.resonance.treble * 4,
       shadowBlur: stroke.size / 2 + env.resonance.treble * 25,
       shadowColor: stroke.color,
+      alpha: Math.min(1, env.alpha * (1 + env.resonance.bass * 0.35)),
     });
   },
   watercolor: renderWatercolor,

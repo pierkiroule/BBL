@@ -364,14 +364,28 @@ export function useBubbleEngine() {
 
   const ensureAudioContext = useCallback(() => {
     if (!audioElRef.current) return;
+
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (!analyserRef.current) {
       analyserRef.current = audioCtxRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
+    }
+
+    if (!dataArrayRef.current && analyserRef.current) {
       dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
-      sourceRef.current = audioCtxRef.current.createMediaElementSource(audioElRef.current);
-      sourceRef.current.connect(analyserRef.current);
-      analyserRef.current.connect(audioCtxRef.current.destination);
+    }
+
+    if (!sourceRef.current) {
+      try {
+        sourceRef.current = audioCtxRef.current.createMediaElementSource(audioElRef.current);
+        sourceRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioCtxRef.current.destination);
+      } catch (e) {
+        // ignore if creating a source fails (already exists for this element)
+      }
     }
   }, []);
 
@@ -570,6 +584,23 @@ export function useBubbleEngine() {
       audioElRef.current.removeAttribute('src');
       audioElRef.current.load();
     }
+
+    if (sourceRef.current) {
+      try { sourceRef.current.disconnect(); } catch (e) { /* ignore */ }
+      sourceRef.current = null;
+    }
+
+    if (analyserRef.current) {
+      try { analyserRef.current.disconnect(); } catch (e) { /* ignore */ }
+      analyserRef.current = null;
+    }
+
+    dataArrayRef.current = null;
+
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close(); } catch (e) { /* ignore */ }
+      audioCtxRef.current = null;
+    }
   }, [revokeFileUrl]);
 
   const setAudioFile = useCallback(
@@ -596,14 +627,19 @@ export function useBubbleEngine() {
     [clearAudioSource, ensureAudioElement, revokeFileUrl]
   );
 
-  const toggleAudio = useCallback(() => {
+  const toggleAudio = useCallback(async () => {
     const audioEl = ensureAudioElement();
     if (!audioEl.src) return false;
     ensureAudioContext();
     if (audioEl.paused) {
-      if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
-      audioEl.play();
-      return true;
+      try {
+        if (audioCtxRef.current?.state === 'suspended') await audioCtxRef.current.resume();
+        await audioEl.play();
+        return true;
+      } catch (e) {
+        console.error('Unable to play audio:', e);
+        return false;
+      }
     }
     audioEl.pause();
     return false;

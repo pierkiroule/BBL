@@ -245,8 +245,8 @@ export default function AtelierView({ onOpenLibrary, sessionToLoad, onSessionsCh
     setAudioFile(file);
   };
 
-  const handleToggleAudio = () => {
-    const playing = toggleAudio();
+  const handleToggleAudio = async () => {
+    const playing = await toggleAudio();
     setIsPlaying(playing);
   };
 
